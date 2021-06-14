@@ -28,9 +28,26 @@ namespace qc::image
 namespace qc::image
 {
     template <typename P>
-    void Image<P>::fill(const P color) noexcept
+    void Image<P>::fill(const P & color) noexcept
     {
         std::fill_n(_pixels, _size.x * _size.y, color);
+    }
+
+    template <typename P>
+    void Image<P>::fill(const ispan2 & region, const P & color) noexcept
+    {
+        const ispan2 trueRegion{qc::intersect(ispan2{{}, _size}, region)};
+        const ivec2 trueSize{trueRegion.size()};
+
+        for (ivec2 p{trueRegion.min}; p.y < trueRegion.max.y; ++p.y) {
+            std::fill_n(&at(p), trueSize.x, color);
+        }
+    }
+
+    template <typename P>
+    void Image<P>::fill(const ivec2 & pos, const ivec2 & size, const P & color) noexcept
+    {
+        fill(ispan2{pos, pos + size}, color);
     }
 
     template <typename P>
@@ -46,8 +63,8 @@ namespace qc::image
         const ivec2 trueSrcPos{trueDstRegion.min - dstPos};
         const ivec2 trueSize{trueDstRegion.size()};
 
-        for (int y{0}; y < trueSize.y; ++y) {
-            std::copy_n(&src.at({trueSrcPos.x, trueSrcPos.y + y}), trueSize.x, &at({trueDstRegion.min.x, trueDstRegion.min.y + y}));
+        for (ivec2 srcP{trueSrcPos}, dstP{trueDstRegion.min}; dstP.y < trueDstRegion.max.y; ++srcP.y, ++dstP.y) {
+            std::copy_n(&src.at(srcP), trueSize.x, &at(dstP));
         }
     }
 

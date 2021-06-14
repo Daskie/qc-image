@@ -17,7 +17,7 @@ namespace qc::image
 
         Image() noexcept = default;
         explicit Image(const ivec2 & size);
-        explicit Image(const ivec2 & size, P * pixels = nullptr);
+        explicit Image(const ivec2 & size, P * pixels);
 
         Image(const Image &) = delete;
         Image(Image && other) noexcept;
@@ -35,7 +35,9 @@ namespace qc::image
         P & at(const ivec2 & p) noexcept;
         const P & at(const ivec2 & p) const noexcept;
 
-        void fill(P color) noexcept;
+        void fill(const P & color) noexcept;
+        void fill(const ispan2 & region, const P & color) noexcept;
+        void fill(const ivec2 & pos, const ivec2 & size, const P & color) noexcept;
 
         void copy(const Image & src, const ivec2 & dstPos) noexcept;
         void copy(const Image & src, const ispan2 & srcRegion, const ivec2 & dstPos) noexcept;
