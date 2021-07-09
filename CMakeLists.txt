@@ -19,7 +19,7 @@ target_include_directories(
     qc-image
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:${PROJECT_NAME}/include>
+        $<INSTALL_INTERFACE:include>
     PRIVATE
         external
 )
@@ -42,31 +42,28 @@ add_subdirectory(test)
 
 ### INSTALL ####################################################################
 
-# Install into named subdirectory on Windows
-if(WIN32)
-    set(DEST_DIR ${PROJECT_NAME})
-else()
-    set(DEST_DIR .)
-endif()
+# See https://cmake.org/cmake/help/git-stage/guide/importing-exporting/index.html
+
+include(GNUInstallDirs)
 
 # General install and target setup
 install(
     TARGETS ${PROJECT_NAME}
     EXPORT ${PROJECT_NAME}-targets
-    LIBRARY DESTINATION ${DEST_DIR}/lib
-    ARCHIVE DESTINATION ${DEST_DIR}/lib
-    RUNTIME DESTINATION ${DEST_DIR}/bin
-    INCLUDES DESTINATION ${DEST_DIR}/include
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION include
 )
 
 # Install headers
-install(DIRECTORY include DESTINATION ${DEST_DIR})
+install(DIRECTORY include DESTINATION .)
 
 # Export targets to create importable cmake file
 install(
     EXPORT ${PROJECT_NAME}-targets
     NAMESPACE ${CMAKE_PROJECT_NAME}::
-    DESTINATION ${DEST_DIR}/share/cmake/${PROJECT_NAME})
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 # Allow library to be found via find_package
 include(CMakePackageConfigHelpers)
@@ -75,11 +72,11 @@ include(CMakePackageConfigHelpers)
 configure_package_config_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
-    INSTALL_DESTINATION ${DEST_DIR}/share/cmake/${PROJECT_NAME}
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 # Install config.cmake files
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
-    DESTINATION ${DEST_DIR}/share/cmake/${PROJECT_NAME}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
