@@ -21,8 +21,6 @@ qc_setup_target(
     qc-image
     LIBRARY
     STATIC
-    SOURCE_FILES
-        source/*.cpp
     PUBLIC_LINKS
         qc-core::qc-core
     INSTALLABLE
