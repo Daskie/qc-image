@@ -51,6 +51,25 @@ namespace qc::image
     }
 
     template <typename P>
+    void Image<P>::outline(const ispan2 & region, const P & color) noexcept
+    {
+        for (int x{region.min.x}; x < region.max.x; ++x) {
+            at(x, region.min.y) = color;
+            at(x, region.max.y - 1) = color;
+        }
+        for (int y{region.min.y}; y < region.max.y; ++y) {
+            at(region.min.x, y) = color;
+            at(region.max.x - 1, y) = color;
+        }
+    }
+
+    template <typename P>
+    void Image<P>::outline(const ivec2 & pos, const ivec2 & size, const P & color) noexcept
+    {
+        outline(ispan2{pos, pos + size}, color);
+    }
+
+    template <typename P>
     void Image<P>::copy(const Image & src, const ivec2 & dstPos) noexcept
     {
         copy(src, {{}, src.size()}, dstPos);

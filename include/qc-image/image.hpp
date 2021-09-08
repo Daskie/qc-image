@@ -34,10 +34,15 @@ namespace qc::image
 
         P & at(const ivec2 & p) noexcept;
         const P & at(const ivec2 & p) const noexcept;
+        P & at(int x, int y) noexcept;
+        const P & at(int x, int y) const noexcept;
 
         void fill(const P & color) noexcept;
         void fill(const ispan2 & region, const P & color) noexcept;
         void fill(const ivec2 & pos, const ivec2 & size, const P & color) noexcept;
+
+        void outline(const ispan2 & region, const P & color) noexcept;
+        void outline(const ivec2 & pos, const ivec2 & size, const P & color) noexcept;
 
         void copy(const Image & src, const ivec2 & dstPos) noexcept;
         void copy(const Image & src, const ispan2 & srcRegion, const ivec2 & dstPos) noexcept;
@@ -119,12 +124,24 @@ namespace qc::image
     template <typename P>
     inline P & Image<P>::at(const ivec2 & p) noexcept
     {
-        return const_cast<P &>(const_cast<const Image *>(this)->at(p));
+        return const_cast<P &>(static_cast<const Image *>(this)->at(p));
     }
 
     template <typename P>
     inline const P & Image<P>::at(const ivec2 & p) const noexcept
     {
-        return _pixels[(_size.y - 1 - p.y) * _size.x + p.x];
+        return at(p.x, p.y);
+    }
+
+    template <typename P>
+    inline P & Image<P>::at(const int x, const int y) noexcept
+    {
+        return const_cast<P &>(static_cast<const Image *>(this)->at(x, y));
+    }
+
+    template <typename P>
+    inline const P & Image<P>::at(const int x, const int y) const noexcept
+    {
+        return _pixels[(_size.y - 1 - y) * _size.x + x];
     }
 }
