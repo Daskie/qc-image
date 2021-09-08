@@ -19,8 +19,7 @@ find_package(qc-core REQUIRED)
 
 qc_setup_target(
     qc-image
-    LIBRARY
-    STATIC
+    STATIC_LIBRARY
     PUBLIC_LINKS
         qc-core::qc-core
     INSTALLABLE
