@@ -17,7 +17,9 @@ namespace qc::image
 
         Image() noexcept = default;
         explicit Image(const ivec2 & size);
-        explicit Image(const ivec2 & size, P * pixels);
+        Image(const ivec2 & size, P * pixels);
+        Image(int width, int height);
+        Image(int width, int height, P * pixels);
 
         Image(const Image &) = delete;
         Image(Image && other) noexcept;
@@ -44,6 +46,8 @@ namespace qc::image
         void outline(const ispan2 & region, const P & color) noexcept;
         void outline(const ivec2 & pos, const ivec2 & size, const P & color) noexcept;
 
+        void checkerboard(int squareSize, const P & backColor, const P & foreColor) noexcept;
+
         void copy(const Image & src, const ivec2 & dstPos) noexcept;
         void copy(const Image & src, const ispan2 & srcRegion, const ivec2 & dstPos) noexcept;
 
@@ -69,12 +73,22 @@ namespace qc::image
 {
     template <typename P>
     inline Image<P>::Image(const ivec2 & size) :
-        Image(size, static_cast<P *>(::operator new(size.x * size.y * sizeof(P))))
+        Image(size.x, size.y)
     {}
 
     template <typename P>
     inline Image<P>::Image(const ivec2 & size, P * const pixels) :
-        _size{size},
+        Image(size.x, size.y, pixels)
+    {}
+
+    template <typename P>
+    inline Image<P>::Image(const int width, const int height) :
+        Image(width, height, static_cast<P *>(::operator new(width * height * sizeof(P))))
+    {}
+
+    template <typename P>
+    inline Image<P>::Image(const int width, const int height, P * const pixels) :
+        _size{width, height},
         _pixels{pixels}
     {}
 

@@ -70,6 +70,17 @@ namespace qc::image
     }
 
     template <typename P>
+    void Image<P>::checkerboard(const int squareSize, const P & backColor, const P & foreColor) noexcept
+    {
+        // TODO: Make more efficient
+        for (ivec2 p{0, 0}; p.y < _size.y; ++p.y) {
+            for (p.x = 0; p.x < _size.x; ++p.x) {
+                at(p) = (p.x / squareSize + p.y / squareSize) % 2 ? foreColor : backColor;
+            }
+        }
+    }
+
+    template <typename P>
     void Image<P>::copy(const Image & src, const ivec2 & dstPos) noexcept
     {
         copy(src, {{}, src.size()}, dstPos);
