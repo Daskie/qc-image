@@ -39,6 +39,8 @@ namespace qc::image
         P & at(int x, int y) noexcept;
         const P & at(int x, int y) const noexcept;
 
+        bool contains(const ivec2 & p) const noexcept;
+
         void fill(const P & color) noexcept;
         void fill(const ispan2 & region, const P & color) noexcept;
         void fill(const ivec2 & pos, const ivec2 & size, const P & color) noexcept;
@@ -157,5 +159,11 @@ namespace qc::image
     inline const P & Image<P>::at(const int x, const int y) const noexcept
     {
         return _pixels[(_size.y - 1 - y) * _size.x + x];
+    }
+
+    template <typename P>
+    inline bool Image<P>::contains(const ivec2 & p) const noexcept
+    {
+        return p.x >= 0 && p.y >= 0 && p.x < _size.x && p.y < _size.y;
     }
 }
