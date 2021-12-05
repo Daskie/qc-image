@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.20)
 
 project(qc-image)
 
@@ -22,11 +22,17 @@ qc_setup_target(
     STATIC_LIBRARY
     PUBLIC_LINKS
         qc-core::qc-core
-    INSTALLABLE
-    INSTALL_DEPENDENCIES
-        qc-core
 )
 
 ### SUBDIRECTORIES #############################################################
 
 add_subdirectory(test EXCLUDE_FROM_ALL)
+
+### INSTALL ####################################################################
+
+qc_setup_install(
+    TARGETS
+        qc-image
+    DEPENDENCIES
+        qc-core
+)
