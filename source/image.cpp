@@ -36,10 +36,11 @@ namespace qc::image
     template <typename P>
     void Image<P>::fill(const ispan2 & region, const P & color) noexcept
     {
-        const ispan2 trueRegion{qc::intersect(ispan2{{}, _size}, region)};
+        const ispan2 trueRegion{ispan2{{}, _size} & region};
         const ivec2 trueSize{trueRegion.size()};
 
-        for (ivec2 p{trueRegion.min}; p.y < trueRegion.max.y; ++p.y) {
+        for (ivec2 p{trueRegion.min}; p.y < trueRegion.max.y; ++p.y)
+        {
             std::fill_n(&at(p), trueSize.x, color);
         }
     }
@@ -53,11 +54,13 @@ namespace qc::image
     template <typename P>
     void Image<P>::outline(const ispan2 & region, const P & color) noexcept
     {
-        for (int x{region.min.x}; x < region.max.x; ++x) {
+        for (int x{region.min.x}; x < region.max.x; ++x)
+        {
             at(x, region.min.y) = color;
             at(x, region.max.y - 1) = color;
         }
-        for (int y{region.min.y}; y < region.max.y; ++y) {
+        for (int y{region.min.y}; y < region.max.y; ++y)
+        {
             at(region.min.x, y) = color;
             at(region.max.x - 1, y) = color;
         }
@@ -73,8 +76,10 @@ namespace qc::image
     void Image<P>::checkerboard(const int squareSize, const P & backColor, const P & foreColor) noexcept
     {
         // TODO: Make more efficient
-        for (ivec2 p{0, 0}; p.y < _size.y; ++p.y) {
-            for (p.x = 0; p.x < _size.x; ++p.x) {
+        for (ivec2 p{0, 0}; p.y < _size.y; ++p.y)
+        {
+            for (p.x = 0; p.x < _size.x; ++p.x)
+            {
                 at(p) = (p.x / squareSize + p.y / squareSize) % 2 ? foreColor : backColor;
             }
         }
@@ -89,11 +94,12 @@ namespace qc::image
     template <typename P>
     void Image<P>::copy(const Image & src, const ispan2 & srcRegion, const ivec2 & dstPos) noexcept
     {
-        const ispan2 trueDstRegion{qc::intersect(ispan2{{}, _size}, dstPos + srcRegion)};
+        const ispan2 trueDstRegion{ispan2{{}, _size} & dstPos + srcRegion};
         const ivec2 trueSrcPos{trueDstRegion.min - dstPos};
         const ivec2 trueSize{trueDstRegion.size()};
 
-        for (ivec2 srcP{trueSrcPos}, dstP{trueDstRegion.min}; dstP.y < trueDstRegion.max.y; ++srcP.y, ++dstP.y) {
+        for (ivec2 srcP{trueSrcPos}, dstP{trueDstRegion.min}; dstP.y < trueDstRegion.max.y; ++srcP.y, ++dstP.y)
+        {
             std::copy_n(&src.at(srcP), trueSize.x, &at(dstP));
         }
     }
@@ -102,14 +108,16 @@ namespace qc::image
     Image<P> read(const std::filesystem::path & file)
     {
         const std::filesystem::file_status fileStatus{std::filesystem::status(file)};
-        if (fileStatus.type() != std::filesystem::file_type::regular) {
+        if (fileStatus.type() != std::filesystem::file_type::regular)
+        {
             throw std::exception{};
         }
 
         int x, y, channels;
         u8 * data{stbi_load(file.string().c_str(), &x, &y, &channels, 0)};
 
-        if (channels != Image<P>::components) {
+        if (channels != Image<P>::components)
+        {
             throw std::exception{};
         }
 
@@ -120,10 +128,12 @@ namespace qc::image
     void write(const Image<P> & image, const std::filesystem::path & file)
     {
         const std::filesystem::path extension{file.extension()};
-        if (extension == ".png") {
+        if (extension == ".png")
+        {
             stbi_write_png(file.string().c_str(), image.size().x, image.size().y, image.components, image.pixels(), image.size().x * sizeof(P));
         }
-        else {
+        else
+        {
             throw std::exception{}; // Currently unsupported
         }
     }
