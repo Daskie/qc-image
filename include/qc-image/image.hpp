@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include <filesystem>
 
 #include <qc-core/core.hpp>
@@ -48,10 +50,16 @@ namespace qc::image
         void outline(const ispan2 & region, const P & color) noexcept;
         void outline(const ivec2 & pos, const ivec2 & size, const P & color) noexcept;
 
+        void horizontalLine(const ivec2 & pos, int length, const P & color) noexcept;
+
+        void verticalLine(const ivec2 & pos, int length, const P & color) noexcept;
+
         void checkerboard(int squareSize, const P & backColor, const P & foreColor) noexcept;
 
         void copy(const Image & src, const ivec2 & dstPos) noexcept;
         void copy(const Image & src, const ispan2 & srcRegion, const ivec2 & dstPos) noexcept;
+
+        P * release() noexcept;
 
         private:
 
@@ -64,7 +72,12 @@ namespace qc::image
     using RgbImage = Image<ucvec3>;
     using RgbaImage = Image<ucvec4>;
 
-    template <typename P> Image<P> read(const std::filesystem::path & file);
+    template <typename P> Image<P> read(const std::filesystem::path & file, bool allowComponentPadding);
+
+    GrayImage readGrayImage(const std::filesystem::path & file);
+    GrayAlphaImage readGrayAlphaImage(const std::filesystem::path & file, bool allowComponentPadding);
+    RgbImage readRgbImage(const std::filesystem::path & file, bool allowComponentPadding);
+    RgbaImage readRgbaImage(const std::filesystem::path & file, bool allowComponentPadding);
 
     template <typename P> void write(const Image<P> & image, const std::filesystem::path & file);
 }
@@ -158,6 +171,8 @@ namespace qc::image
     template <typename P>
     inline const P & Image<P>::at(const int x, const int y) const noexcept
     {
+        assert(x >= 0 && x < _size.x && y >= 0 && y < _size.y);
+
         return _pixels[(_size.y - 1 - y) * _size.x + x];
     }
 

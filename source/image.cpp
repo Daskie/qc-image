@@ -54,12 +54,12 @@ namespace qc::image
     template <typename P>
     void Image<P>::outline(const ispan2 & region, const P & color) noexcept
     {
-        for (int x{region.min.x}; x < region.max.x; ++x)
+        for (int x{qc::max(region.min.x, 0)}, endX{qc::min(region.max.x, _size.x)}; x < endX; ++x)
         {
             at(x, region.min.y) = color;
             at(x, region.max.y - 1) = color;
         }
-        for (int y{region.min.y}; y < region.max.y; ++y)
+        for (int y{qc::max(region.min.y, 0)}, endY{qc::min(region.max.y, _size.y)}; y < endY; ++y)
         {
             at(region.min.x, y) = color;
             at(region.max.x - 1, y) = color;
@@ -70,6 +70,30 @@ namespace qc::image
     void Image<P>::outline(const ivec2 & pos, const ivec2 & size, const P & color) noexcept
     {
         outline(ispan2{pos, pos + size}, color);
+    }
+
+    template <typename P>
+    void Image<P>::horizontalLine(const ivec2 & pos, const int length, const P & color) noexcept
+    {
+        if (pos.x >= 0 && pos.y < _size.y)
+        {
+            for (int x{qc::max(pos.x, 0)}, endX{qc::min(pos.x + length, _size.x)}; x < endX; ++x)
+            {
+                at(x, pos.y) = color;
+            }
+        }
+    }
+
+    template <typename P>
+    void Image<P>::verticalLine(const ivec2 & pos, const int length, const P & color) noexcept
+    {
+        if (pos.x >= 0 && pos.x < _size.x)
+        {
+            for (int y{qc::max(pos.y, 0)}, endY{qc::min(pos.y + length, _size.y)}; y < endY; ++y)
+            {
+                at(pos.x, y) = color;
+            }
+        }
     }
 
     template <typename P>
@@ -105,7 +129,14 @@ namespace qc::image
     }
 
     template <typename P>
-    Image<P> read(const std::filesystem::path & file)
+    P * Image<P>::release() noexcept
+    {
+        _size = {};
+        return std::exchange(_pixels, nullptr);
+    }
+
+    template <typename P>
+    Image<P> read(const std::filesystem::path & file, const bool allowComponentPadding)
     {
         const std::filesystem::file_status fileStatus{std::filesystem::status(file)};
         if (fileStatus.type() != std::filesystem::file_type::regular)
@@ -114,14 +145,34 @@ namespace qc::image
         }
 
         int x, y, channels;
-        u8 * data{stbi_load(file.string().c_str(), &x, &y, &channels, 0)};
+        u8 * data{stbi_load(file.string().c_str(), &x, &y, &channels, allowComponentPadding ? Image<P>::components : 0)};
 
-        if (channels != Image<P>::components)
+        if (channels > Image<P>::components || !allowComponentPadding && channels < Image<P>::components)
         {
             throw std::exception{};
         }
 
         return Image<P>{ivec2{x, y}, reinterpret_cast<P *>(data)};
+    }
+
+    GrayImage readGrayImage(const std::filesystem::path & file)
+    {
+        return read<u8>(file, false);
+    }
+
+    GrayAlphaImage readGrayAlphaImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    {
+        return read<ucvec2>(file, allowComponentPadding);
+    }
+
+    RgbImage readRgbImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    {
+        return read<ucvec3>(file, allowComponentPadding);
+    }
+
+    RgbaImage readRgbaImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    {
+        return read<ucvec4>(file, allowComponentPadding);
     }
 
     template <typename P>
@@ -145,10 +196,10 @@ namespace qc::image
     template class Image<ucvec3>;
     template class Image<ucvec4>;
 
-    template GrayImage read<u8>(const std::filesystem::path &);
-    template GrayAlphaImage read<ucvec2>(const std::filesystem::path &);
-    template RgbImage read<ucvec3>(const std::filesystem::path &);
-    template RgbaImage read<ucvec4>(const std::filesystem::path &);
+    template GrayImage read<u8>(const std::filesystem::path &, bool);
+    template GrayAlphaImage read<ucvec2>(const std::filesystem::path &, bool);
+    template RgbImage read<ucvec3>(const std::filesystem::path &, bool);
+    template RgbaImage read<ucvec4>(const std::filesystem::path &, bool);
 
     template void write(const GrayImage &, const std::filesystem::path &);
     template void write(const GrayAlphaImage &, const std::filesystem::path &);
