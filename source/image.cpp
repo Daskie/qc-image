@@ -54,16 +54,11 @@ namespace qc::image
     template <typename P>
     void Image<P>::outline(const ispan2 & region, const P & color) noexcept
     {
-        for (int x{qc::max(region.min.x, 0)}, endX{qc::min(region.max.x, _size.x)}; x < endX; ++x)
-        {
-            at(x, region.min.y) = color;
-            at(x, region.max.y - 1) = color;
-        }
-        for (int y{qc::max(region.min.y, 0)}, endY{qc::min(region.max.y, _size.y)}; y < endY; ++y)
-        {
-            at(region.min.x, y) = color;
-            at(region.max.x - 1, y) = color;
-        }
+        const ivec2 size{region.size()};
+        horizontalLine(region.min, size.x, color);
+        horizontalLine(ivec2{region.min.x, region.max.y - 1}, size.x, color);
+        verticalLine(ivec2{region.min.x, region.min.y + 1}, size.y - 2, color);
+        verticalLine(ivec2{region.max.x - 1, region.min.y + 1}, size.y - 2, color);
     }
 
     template <typename P>
@@ -75,7 +70,7 @@ namespace qc::image
     template <typename P>
     void Image<P>::horizontalLine(const ivec2 & pos, const int length, const P & color) noexcept
     {
-        if (pos.x >= 0 && pos.y < _size.y)
+        if (pos.y >= 0 && pos.y < _size.y)
         {
             for (int x{qc::max(pos.x, 0)}, endX{qc::min(pos.x + length, _size.x)}; x < endX; ++x)
             {
