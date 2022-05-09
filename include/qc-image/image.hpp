@@ -33,6 +33,10 @@ namespace qc::image
 
         const ivec2 & size() const noexcept;
 
+        int width() const noexcept;
+
+        int height() const noexcept;
+
         P * pixels() noexcept;
         const P * pixels() const noexcept;
 
@@ -136,6 +140,18 @@ namespace qc::image
     inline const ivec2 & Image<P>::size() const noexcept
     {
         return _size;
+    }
+
+    template <typename P>
+    inline int Image<P>::width() const noexcept
+    {
+        return _size.x;
+    }
+
+    template <typename P>
+    inline int Image<P>::height() const noexcept
+    {
+        return _size.y;
     }
 
     template <typename P>
