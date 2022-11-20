@@ -11,17 +11,19 @@ namespace qc::image
     }
 }
 
+#pragma warning(push)
+#pragma warning(disable: 4365 4711 4738 5219 6951)
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MALLOC(size) ::operator new(size)
 #define STBI_FREE(ptr) ::operator delete(ptr)
 #define STBI_REALLOC_SIZED(oldPtr, oldSize, newSize) ::qc::image::_realloc(oldPtr, oldSize, newSize)
 #include <stb/stb_image.h>
-
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBIW_MALLOC STBI_MALLOC
 #define STBIW_FREE STBI_FREE
 #define STBIW_REALLOC_SIZED STBI_REALLOC_SIZED
 #include <stb/stb_image_write.h>
+#pragma warning(pop)
 
 #include <qc-core/span-ext.hpp>
 
@@ -87,6 +89,43 @@ namespace qc::image
             for (int y{qc::max(pos.y, 0)}, endY{qc::min(pos.y + length, _size.y)}; y < endY; ++y)
             {
                 at(pos.x, y) = color;
+            }
+        }
+    }
+
+    template <typename P>
+    void Image<P>::diagonalLine(const ivec2 & pos, const int length, const int thickness, const bool slope, const P & color) noexcept
+    {
+        if (slope)
+        {
+            for (int i{0}; i < length; ++i)
+            {
+                at(pos + i) = color;
+            }
+
+            for (int j{1}; j < thickness; ++j)
+            {
+                for (int i{0}; i < length - j; ++i)
+                {
+                    at(pos.x + j + i, pos.y + i) = color;
+                    at(pos.x + i, pos.y + j + i) = color;
+                }
+            }
+        }
+        else
+        {
+            for (int i{0}; i < length; ++i)
+            {
+                at(pos.x + i, pos.y + length - 1 - i) = color;
+            }
+
+            for (int j{1}; j < thickness; ++j)
+            {
+                for (int i{0}; i < length - j; ++i)
+                {
+                    at(pos.x + j + i, pos.y + length - 1 - i) = color;
+                    at(pos.x + i, pos.y + length - 1 - j - i) = color;
+                }
             }
         }
     }
@@ -176,7 +215,7 @@ namespace qc::image
         const std::filesystem::path extension{file.extension()};
         if (extension == ".png")
         {
-            stbi_write_png(file.string().c_str(), image.size().x, image.size().y, image.components, image.pixels(), image.size().x * sizeof(P));
+            stbi_write_png(file.string().c_str(), image.size().x, image.size().y, image.components, image.pixels(), image.size().x * int(sizeof(P)));
         }
         else
         {

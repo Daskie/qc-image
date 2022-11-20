@@ -2,7 +2,10 @@
 
 #include <cassert>
 
+#pragma warning(push)
+#pragma warning(disable: 4738)
 #include <filesystem>
+#pragma warning(pop)
 
 #include <qc-core/core.hpp>
 #include <qc-core/span.hpp>
@@ -57,6 +60,8 @@ namespace qc::image
         void horizontalLine(const ivec2 & pos, int length, const P & color) noexcept;
 
         void verticalLine(const ivec2 & pos, int length, const P & color) noexcept;
+
+        void diagonalLine(const ivec2 & pos, const int length, int thickness, bool slope, const P & color) noexcept;
 
         void checkerboard(int squareSize, const P & backColor, const P & foreColor) noexcept;
 
