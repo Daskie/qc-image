@@ -39,31 +39,39 @@ namespace qc::image::sdf
             return abs(p.x) <= 1.0e9 && abs(p.y) <= 1.0e9;
         }
 
+        dvec2 _evaluateBezier(const _CurveExt & curve, const double t)
+        {
+            return curve.a * t * t + curve.b * t + curve.c;
+        }
+
+        dvec2 _evaluateBezier(const _CurveExt & curve, const dvec2 & t)
+        {
+            return curve.a * t * t + curve.b * t + curve.c;
+        }
+
         dspan2 _detSpan(const Line & line)
         {
             return {min(line.p1, line.p2), max(line.p1, line.p2)};
         }
 
-        dspan2 _detSpan(const Curve & curve)
+        dspan2 _detSpan(const Curve & curve, const _CurveExt & curveExt)
         {
             dspan2 span{min(curve.p1, curve.p3), max(curve.p1, curve.p3)};
 
             if (!span.contains(curve.p2))
             {
-                // TODO: Replace with factor form?
-                const dvec2 t{clamp((curve.p1 - curve.p2) / (curve.p1 - 2.0 * curve.p2 + curve.p3), 0.0, 1.0)};
-                const dvec2 s{1.0 - t};
-                const dvec2 q{s * s * curve.p1 + 2.0 * s * t * curve.p2 + t * t * curve.p3};
-                minify(span.min, q);
-                maxify(span.max, q);
+                const dvec2 extremeT{clamp(curveExt.b / (-2.0 * curveExt.a), 0.0, 1.0)};
+                const dvec2 extremeP{_evaluateBezier(curveExt, extremeT)};
+                minify(span.min, extremeP);
+                maxify(span.max, extremeP);
             }
 
             return span;
         }
 
-        dspan2 _detSpan(const Segment & segment)
+        dspan2 _detSpan(const Segment & segment, const _SegmentExt & segmentExt)
         {
-            return segment.isCurve ? _detSpan(segment.curve) : _detSpan(segment.line);
+            return segment.isCurve ? _detSpan(segment.curve, segmentExt.curve) : _detSpan(segment.line);
         }
 
         double _distance2To(const Line & line, const _LineExt & lineExt, const dvec2 & p)
@@ -72,11 +80,6 @@ namespace qc::image::sdf
             const double t{clamp(dot(lineExt.a, b) * lineExt.invLength2, 0.0, 1.0)};
             const dvec2 c{t * lineExt.a};
             return distance2(b, c);
-        }
-
-        dvec2 _evaluateBezier(const _CurveExt & curve, const double t)
-        {
-            return curve.a * t * t + curve.b * t + curve.c;
         }
 
         double _findClosestPoint(const _CurveExt & curve, const dvec2 & p, double lowT, double highT)
@@ -270,7 +273,7 @@ namespace qc::image::sdf
         {
             const _SegmentExt segmentExt{_calcExtra(segment)};
 
-            const dspan2 bounds{_detSpan(segment)};
+            const dspan2 bounds{_detSpan(segment, segmentExt)};
 
             _updateDistances(segment, segmentExt, size, range, rows, bounds);
 
