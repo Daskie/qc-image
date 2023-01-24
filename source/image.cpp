@@ -36,102 +36,57 @@ namespace qc::image
     }
 
     template <typename P>
-    void Image<P>::fill(const ispan2 & region, const P & color) noexcept
+    P * Image<P>::release() noexcept
     {
-        const ispan2 trueRegion{ispan2{{}, _size} & region};
-        const ivec2 trueSize{trueRegion.size()};
+        _size = {};
+        return std::exchange(_pixels, nullptr);
+    }
 
-        for (ivec2 p{trueRegion.min}; p.y < trueRegion.max.y; ++p.y)
+    template <typename P>
+    void ImageView<P>::fill(const P & color) const noexcept requires (!std::is_const_v<P>)
+    {
+        for (int y{0}; y < _size.y; ++y)
         {
-            std::fill_n(&at(p), trueSize.x, color);
+            std::fill_n(row(y), _size.x, color);
         }
     }
 
     template <typename P>
-    void Image<P>::fill(const ivec2 & pos, const ivec2 & size, const P & color) noexcept
+    void ImageView<P>::outline(const P & color) const noexcept requires (!std::is_const_v<P>)
     {
-        fill(ispan2{pos, pos + size}, color);
+        horizontalLine({0, 0}, _size.x, color);
+        horizontalLine({0, _size.y - 1}, _size.x, color);
+        verticalLine({0, 1}, _size.y - 2, color);
+        verticalLine({_size.x - 1, 1}, _size.y - 2, color);
     }
 
     template <typename P>
-    void Image<P>::outline(const ispan2 & region, const P & color) noexcept
+    void ImageView<P>::horizontalLine(const ivec2 pos, const int length, const P & color) const noexcept requires (!std::is_const_v<P>)
     {
-        const ivec2 size{region.size()};
-        horizontalLine(region.min, size.x, color);
-        horizontalLine(ivec2{region.min.x, region.max.y - 1}, size.x, color);
-        verticalLine(ivec2{region.min.x, region.min.y + 1}, size.y - 2, color);
-        verticalLine(ivec2{region.max.x - 1, region.min.y + 1}, size.y - 2, color);
-    }
-
-    template <typename P>
-    void Image<P>::outline(const ivec2 & pos, const ivec2 & size, const P & color) noexcept
-    {
-        outline(ispan2{pos, pos + size}, color);
-    }
-
-    template <typename P>
-    void Image<P>::horizontalLine(const ivec2 & pos, const int length, const P & color) noexcept
-    {
-        if (pos.y >= 0 && pos.y < _size.y)
+        if (length > 0 && pos.y >= 0 && pos.y < _size.y)
         {
-            for (int x{qc::max(pos.x, 0)}, endX{qc::min(pos.x + length, _size.x)}; x < endX; ++x)
-            {
-                at(x, pos.y) = color;
-            }
+            P * const r{row(pos.y)};
+            std::fill(r + max(pos.x, 0), r + min(pos.x + length, _size.x), color);
         }
     }
 
     template <typename P>
-    void Image<P>::verticalLine(const ivec2 & pos, const int length, const P & color) noexcept
+    void ImageView<P>::verticalLine(const ivec2 pos, const int length, const P & color) const noexcept requires (!std::is_const_v<P>)
     {
-        if (pos.x >= 0 && pos.x < _size.x)
+        if (length > 0 && pos.x >= 0 && pos.x < _size.x)
         {
-            for (int y{qc::max(pos.y, 0)}, endY{qc::min(pos.y + length, _size.y)}; y < endY; ++y)
+            const int startY{max(pos.y, 0)};
+            const int endY{min(pos.y + length, _size.y)};
+            P * p{&at(pos.x, startY)};
+            for (int y{startY}; y < endY; ++y, p -= _image->_size.x)
             {
-                at(pos.x, y) = color;
+                *p = color;
             }
         }
     }
 
     template <typename P>
-    void Image<P>::diagonalLine(const ivec2 & pos, const int length, const int thickness, const bool slope, const P & color) noexcept
-    {
-        if (slope)
-        {
-            for (int i{0}; i < length; ++i)
-            {
-                at(pos + i) = color;
-            }
-
-            for (int j{1}; j < thickness; ++j)
-            {
-                for (int i{0}; i < length - j; ++i)
-                {
-                    at(pos.x + j + i, pos.y + i) = color;
-                    at(pos.x + i, pos.y + j + i) = color;
-                }
-            }
-        }
-        else
-        {
-            for (int i{0}; i < length; ++i)
-            {
-                at(pos.x + i, pos.y + length - 1 - i) = color;
-            }
-
-            for (int j{1}; j < thickness; ++j)
-            {
-                for (int i{0}; i < length - j; ++i)
-                {
-                    at(pos.x + j + i, pos.y + length - 1 - i) = color;
-                    at(pos.x + i, pos.y + length - 1 - j - i) = color;
-                }
-            }
-        }
-    }
-
-    template <typename P>
-    void Image<P>::checkerboard(const int squareSize, const P & backColor, const P & foreColor) noexcept
+    void ImageView<P>::checkerboard(const int squareSize, const P & backColor, const P & foreColor) const noexcept requires (!std::is_const_v<P>)
     {
         // TODO: Make more efficient
         for (ivec2 p{0, 0}; p.y < _size.y; ++p.y)
@@ -144,29 +99,22 @@ namespace qc::image
     }
 
     template <typename P>
-    void Image<P>::copy(const Image & src, const ivec2 & dstPos) noexcept
+    void ImageView<P>::copy(const ImageView<const P> & src) const noexcept requires (!std::is_const_v<P>)
     {
-        copy(src, {{}, src.size()}, dstPos);
-    }
+        assert(_size == src._size);
 
-    template <typename P>
-    void Image<P>::copy(const Image & src, const ispan2 & srcRegion, const ivec2 & dstPos) noexcept
-    {
-        const ispan2 trueDstRegion{ispan2{{}, _size} & dstPos + srcRegion};
-        const ivec2 trueSrcPos{trueDstRegion.min - dstPos};
-        const ivec2 trueSize{trueDstRegion.size()};
-
-        for (ivec2 srcP{trueSrcPos}, dstP{trueDstRegion.min}; dstP.y < trueDstRegion.max.y; ++srcP.y, ++dstP.y)
+        const P * srcR{src.row(0)};
+        P * dstR{row(0)};
+        for (int y{0}; y < _size.y; ++y, srcR -= src._image->_size.x, dstR -= _image->_size.x)
         {
-            std::copy_n(&src.at(srcP), trueSize.x, &at(dstP));
+            std::copy_n(srcR, _size.x, dstR);
         }
     }
 
     template <typename P>
-    P * Image<P>::release() noexcept
+    void ImageView<P>::copy(const Image & src) const noexcept requires (!std::is_const_v<P>)
     {
-        _size = {};
-        return std::exchange(_pixels, nullptr);
+        copy(src.view());
     }
 
     template <typename P>
@@ -229,6 +177,11 @@ namespace qc::image
     template class Image<ucvec2>;
     template class Image<ucvec3>;
     template class Image<ucvec4>;
+
+    template class ImageView<u8>;
+    template class ImageView<ucvec2>;
+    template class ImageView<ucvec3>;
+    template class ImageView<ucvec4>;
 
     template GrayImage read<u8>(const std::filesystem::path &, bool);
     template GrayAlphaImage read<ucvec2>(const std::filesystem::path &, bool);

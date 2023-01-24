@@ -13,16 +13,21 @@
 
 namespace qc::image
 {
+    template <typename P> class ImageView;
+
     template <typename P>
     class Image
     {
-        public:
+        friend class ImageView<P>;
+        friend class ImageView<const P>;
+
+      public:
 
         static constexpr int components{sizeof(P)};
 
         Image() noexcept = default;
-        explicit Image(const ivec2 & size);
-        Image(const ivec2 & size, P * pixels);
+        explicit Image(ivec2 size);
+        Image(ivec2 size, P * pixels);
         Image(int width, int height);
         Image(int width, int height, P * pixels);
 
@@ -34,43 +39,35 @@ namespace qc::image
 
         ~Image() noexcept;
 
-        const ivec2 & size() const noexcept;
+        void fill(const P & color) noexcept;
 
-        int width() const noexcept;
+        ImageView<P> view() noexcept;
+        ImageView<const P> view() const noexcept;
+        ImageView<P> view(const ispan2 & span) noexcept;
+        ImageView<const P> view(const ispan2 & span) const noexcept;
+        ImageView<P> view(ivec2 position, ivec2 size) noexcept;
+        ImageView<const P> view(ivec2 position, ivec2 size) const noexcept;
 
-        int height() const noexcept;
+        ivec2 size() const noexcept { return _size; }
 
-        P * pixels() noexcept;
-        const P * pixels() const noexcept;
+        int width() const noexcept { return _size.x; };
 
-        P & at(const ivec2 & p) noexcept;
-        const P & at(const ivec2 & p) const noexcept;
+        int height() const noexcept { return _size.y; };
+
+        P * pixels() noexcept { return _pixels; };
+        const P * pixels() const noexcept { return _pixels; };
+
+        P * row(int y) noexcept;
+        const P * row(int y) const noexcept;
+
+        P & at(ivec2 p) noexcept;
+        const P & at(ivec2 p) const noexcept;
         P & at(int x, int y) noexcept;
         const P & at(int x, int y) const noexcept;
 
-        bool contains(const ivec2 & p) const noexcept;
-
-        void fill(const P & color) noexcept;
-        void fill(const ispan2 & region, const P & color) noexcept;
-        void fill(const ivec2 & pos, const ivec2 & size, const P & color) noexcept;
-
-        void outline(const ispan2 & region, const P & color) noexcept;
-        void outline(const ivec2 & pos, const ivec2 & size, const P & color) noexcept;
-
-        void horizontalLine(const ivec2 & pos, int length, const P & color) noexcept;
-
-        void verticalLine(const ivec2 & pos, int length, const P & color) noexcept;
-
-        void diagonalLine(const ivec2 & pos, const int length, int thickness, bool slope, const P & color) noexcept;
-
-        void checkerboard(int squareSize, const P & backColor, const P & foreColor) noexcept;
-
-        void copy(const Image & src, const ivec2 & dstPos) noexcept;
-        void copy(const Image & src, const ispan2 & srcRegion, const ivec2 & dstPos) noexcept;
-
         P * release() noexcept;
 
-        private:
+      private:
 
         ivec2 _size{};
         P * _pixels{};
@@ -80,6 +77,73 @@ namespace qc::image
     using GrayAlphaImage = Image<ucvec2>;
     using RgbImage = Image<ucvec3>;
     using RgbaImage = Image<ucvec4>;
+
+    template <typename P>
+    class ImageView
+    {
+        using _ImageP = std::remove_const_t<P>;
+        friend class Image<_ImageP>;
+        friend class ImageView<std::remove_const_t<P>>;
+        friend class ImageView<std::add_const_t<P>>;
+
+      public:
+
+        using Image = std::conditional_t<std::is_const_v<P>, const Image<_ImageP>, Image<_ImageP>>;
+
+        ImageView() noexcept = default;
+
+        ImageView(const ImageView &) noexcept = default;
+        ImageView(const ImageView<std::remove_const_t<P>> & other) noexcept requires std::is_const_v<P>;
+
+        ImageView & operator=(const ImageView &) noexcept = default;
+        ImageView & operator=(const ImageView<std::remove_const_t<P>> & other) noexcept requires std::is_const_v<P>;
+
+        ImageView view(const ispan2 & span) const noexcept;
+        ImageView view(ivec2 position, ivec2 size) const noexcept;
+
+        Image * image() const noexcept { return _image; }
+
+        const ispan2 & span() const noexcept { return _span; }
+
+        ivec2 pos() const noexcept { return _span.min; }
+
+        ivec2 size() const noexcept { return _size; }
+
+        int width() const noexcept { return _size.x; }
+
+        int height() const noexcept { return _size.y; }
+
+        P * row(int y) const noexcept;
+
+        P & at(ivec2 p) const noexcept;
+        P & at(int x, int y) const noexcept;
+
+        void fill(const P & color) const noexcept requires (!std::is_const_v<P>);
+
+        void outline(const P & color) const noexcept requires (!std::is_const_v<P>);
+
+        void horizontalLine(ivec2 pos, int length, const P & color) const noexcept requires (!std::is_const_v<P>);
+
+        void verticalLine(ivec2 pos, int length, const P & color) const noexcept requires (!std::is_const_v<P>);
+
+        void checkerboard(int squareSize, const P & backColor, const P & foreColor) const noexcept requires (!std::is_const_v<P>);
+
+        void copy(const ImageView<const P> & src) const noexcept requires (!std::is_const_v<P>);
+        void copy(const Image & src) const noexcept requires (!std::is_const_v<P>);
+
+      private:
+
+        Image * _image{};
+        ispan2 _span{};
+        ivec2 _size{};
+
+        ImageView(Image & image, const ispan2 & span) noexcept;
+    };
+
+    using GrayImageView = ImageView<u8>;
+    using GrayAlphaImageView = ImageView<ucvec2>;
+    using RgbImageView = ImageView<ucvec3>;
+    using RgbaImageView = ImageView<ucvec4>;
 
     template <typename P> Image<P> read(const std::filesystem::path & file, bool allowComponentPadding);
 
@@ -96,12 +160,12 @@ namespace qc::image
 namespace qc::image
 {
     template <typename P>
-    inline Image<P>::Image(const ivec2 & size) :
+    inline Image<P>::Image(const ivec2 size) :
         Image(size.x, size.y)
     {}
 
     template <typename P>
-    inline Image<P>::Image(const ivec2 & size, P * const pixels) :
+    inline Image<P>::Image(const ivec2 size, P * const pixels) :
         Image(size.x, size.y, pixels)
     {}
 
@@ -142,43 +206,61 @@ namespace qc::image
     }
 
     template <typename P>
-    inline const ivec2 & Image<P>::size() const noexcept
+    inline ImageView<P> Image<P>::view() noexcept
     {
-        return _size;
+        return ImageView<P>{*this, ispan2{0, _size}};
     }
 
     template <typename P>
-    inline int Image<P>::width() const noexcept
+    inline ImageView<const P> Image<P>::view() const noexcept
     {
-        return _size.x;
+        return ImageView<const P>{*this, ispan2{0, _size}};
     }
 
     template <typename P>
-    inline int Image<P>::height() const noexcept
+    inline ImageView<P> Image<P>::view(const ispan2 & span) noexcept
     {
-        return _size.y;
+        return ImageView<P>{*this, clamp(span, ivec2{0}, _size)};
     }
 
     template <typename P>
-    inline P * Image<P>::pixels() noexcept
+    inline ImageView<const P> Image<P>::view(const ispan2 & span) const noexcept
     {
-        return _pixels;
+        return ImageView<const P>{*this, clamp(span, ivec2{0}, _size)};
     }
 
     template <typename P>
-    inline const P * Image<P>::pixels() const noexcept
+    inline ImageView<P> Image<P>::view(const ivec2 pos, const ivec2 size) noexcept
     {
-        return _pixels;
+        return ImageView<P>{*this, ispan2{pos, pos + size}};
     }
 
     template <typename P>
-    inline P & Image<P>::at(const ivec2 & p) noexcept
+    inline ImageView<const P> Image<P>::view(const ivec2 pos, const ivec2 size) const noexcept
     {
-        return const_cast<P &>(static_cast<const Image *>(this)->at(p));
+        return ImageView<const P>{*this, ispan2{pos, pos + size}};
     }
 
     template <typename P>
-    inline const P & Image<P>::at(const ivec2 & p) const noexcept
+    inline P * Image<P>::row(const int y) noexcept
+    {
+        return _pixels + (_size.y - 1 - y) * _size.x;
+    }
+
+    template <typename P>
+    inline const P * Image<P>::row(const int y) const noexcept
+    {
+        return _pixels + (_size.y - 1 - y) * _size.x;
+    }
+
+    template <typename P>
+    inline P & Image<P>::at(const ivec2 p) noexcept
+    {
+        return at(p.x, p.y);
+    }
+
+    template <typename P>
+    inline const P & Image<P>::at(const ivec2 p) const noexcept
     {
         return at(p.x, p.y);
     }
@@ -186,7 +268,9 @@ namespace qc::image
     template <typename P>
     inline P & Image<P>::at(const int x, const int y) noexcept
     {
-        return const_cast<P &>(static_cast<const Image *>(this)->at(x, y));
+        assert(x >= 0 && x < _size.x && y >= 0 && y < _size.y);
+
+        return row(y)[x];
     }
 
     template <typename P>
@@ -194,12 +278,56 @@ namespace qc::image
     {
         assert(x >= 0 && x < _size.x && y >= 0 && y < _size.y);
 
-        return _pixels[(_size.y - 1 - y) * _size.x + x];
+        return row(y)[x];
     }
 
     template <typename P>
-    inline bool Image<P>::contains(const ivec2 & p) const noexcept
+    inline ImageView<P>::ImageView(const ImageView<std::remove_const_t<P>> & other) noexcept requires std::is_const_v<P> :
+        ImageView{reinterpret_cast<const ImageView &>(other)}
+    {}
+
+    template <typename P>
+    inline ImageView<P> & ImageView<P>::operator=(const ImageView<std::remove_const_t<P>> & other) noexcept requires std::is_const_v<P>
     {
-        return p.x >= 0 && p.y >= 0 && p.x < _size.x && p.y < _size.y;
+        return *this = reinterpret_cast<const ImageView &>(other);
+    }
+
+    template <typename P>
+    inline ImageView<P>::ImageView(Image & image, const ispan2 & span) noexcept :
+        _image{&image},
+        _span{span},
+        _size{_span.size()}
+    {}
+
+    template <typename P>
+    inline ImageView<P> ImageView<P>::view(const ispan2 & span) const noexcept
+    {
+        return ImageView{*_image, span & _span};
+    }
+
+    template <typename P>
+    inline ImageView<P> ImageView<P>::view(const ivec2 pos, const ivec2 size) const noexcept
+    {
+        return view(ispan2{pos, pos + size});
+    }
+
+    template <typename P>
+    inline P * ImageView<P>::row(const int y) const noexcept
+    {
+        return _image->row(_span.min.y + y) + _span.min.x;
+    }
+
+    template <typename P>
+    inline P & ImageView<P>::at(const ivec2 p) const noexcept
+    {
+        return at(p.x, p.y);
+    }
+
+    template <typename P>
+    inline P & ImageView<P>::at(const int x, const int y) const noexcept
+    {
+        assert(x >= 0 && x < _size.x && y >= 0 && y < _size.y);
+
+        return row(y)[x];
     }
 }
