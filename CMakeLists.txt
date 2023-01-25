@@ -9,7 +9,7 @@ FetchContent_MakeAvailable(qc-cmake)
 
 ### DEPENDENCIES ###############################################################
 
-find_package(qc-core REQUIRED)
+find_package(qc-core)
 
 ### QC-IMAGE ###################################################################
 
@@ -22,7 +22,7 @@ qc_setup_target(
 
 ### SUBDIRECTORIES #############################################################
 
-add_subdirectory(test EXCLUDE_FROM_ALL)
+add_subdirectory(test)
 
 ### INSTALL ####################################################################
 
