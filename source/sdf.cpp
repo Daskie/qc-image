@@ -165,9 +165,9 @@ namespace qc::image::sdf
             return segment.isCurve ? _distance2To(segment.curve, segmentExt.curve, p) : _distance2To(segment.line, segmentExt.line, p);
         }
 
-        void _updateDistances(const Segment & segment, const _SegmentExt & segmentExt, const int size, const double range, _Row * const rows, const dspan2 bounds)
+        void _updateDistances(const Segment & segment, const _SegmentExt & segmentExt, const int size, const double halfRange, _Row * const rows, const dspan2 bounds)
         {
-            const ispan2 pixelBounds{max(floor<int>(bounds.min - range), 0), min(ceil<int>(bounds.max + range), size)};
+            const ispan2 pixelBounds{max(floor<int>(bounds.min - halfRange), 0), min(ceil<int>(bounds.max + halfRange), size)};
 
             for (ivec2 p{pixelBounds.min}; p.y < pixelBounds.max.y; ++p.y)
             {
@@ -269,13 +269,13 @@ namespace qc::image::sdf
             }
         }
 
-        void _process(const Segment & segment, const int size, const double range, _Row * const rows)
+        void _process(const Segment & segment, const int size, const double halfRange, _Row * const rows)
         {
             const _SegmentExt segmentExt{_calcExtra(segment)};
 
             const dspan2 bounds{_detSpan(segment, segmentExt)};
 
-            _updateDistances(segment, segmentExt, size, range, rows, bounds);
+            _updateDistances(segment, segmentExt, size, halfRange, rows, bounds);
 
             ispan1 interceptRows{ceil<int>(bounds.min.y - 0.5), floor<int>(bounds.max.y - 0.5)};
             if (double(interceptRows.min) + 0.5 == bounds.min.y) ++interceptRows.min;
@@ -510,11 +510,13 @@ namespace qc::image::sdf
 
         // Process segments to calculate distances and row intersections
 
+        const double halfRange{range * 0.5};
+
         for (const Contour & contour : outline.contours)
         {
             for (const Segment & segment : contour.segments)
             {
-                _process(segment, size, range, rows.data());
+                _process(segment, size, halfRange, rows.data());
             }
 
             // Explicitly and carefully add endpoints as intercepts if appropriate
@@ -569,7 +571,7 @@ namespace qc::image::sdf
 
         for (; src < srcEnd; ++src, ++dst)
         {
-            *dst = transnorm<u8>(0.5 - 0.5 * *src * invRange);
+            *dst = transnorm<u8>(0.5 - *src * invRange);
         }
 
         return image;

@@ -64,6 +64,7 @@ namespace qc::image::sdf
 
     ///
     /// ...
+    /// Range is the total width of the distance gradient from 0.0 to 1.0
     /// @throws OutlineInvalidError if `outline.isValid()` is false
     ///
     GrayImage generate(const Outline & outline, const int size, const double range);
