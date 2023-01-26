@@ -120,7 +120,7 @@ namespace qc::image
 
         void fill(const P & color) const noexcept requires (!std::is_const_v<P>);
 
-        void outline(const P & color) const noexcept requires (!std::is_const_v<P>);
+        void outline(int thickness, const P & color) const noexcept requires (!std::is_const_v<P>);
 
         void horizontalLine(ivec2 pos, int length, const P & color) const noexcept requires (!std::is_const_v<P>);
 

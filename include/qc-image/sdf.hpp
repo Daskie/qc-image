@@ -1,7 +1,6 @@
 #pragma once
 
-#include <vector>
-
+#include <qc-core/list.hpp>
 #include <qc-core/vector.hpp>
 
 #include <qc-image/image.hpp>
@@ -40,7 +39,7 @@ namespace qc::image::sdf
 
     struct Contour
     {
-        std::vector<Segment> segments{};
+        List<Segment> segments{};
 
         void cullDegenerates();
 
@@ -51,7 +50,7 @@ namespace qc::image::sdf
 
     struct Outline
     {
-        std::vector<Contour> contours{};
+        List<Contour> contours{};
 
         void cullDegenerates();
 

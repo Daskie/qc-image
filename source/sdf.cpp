@@ -381,8 +381,7 @@ namespace qc::image::sdf
 
     void Contour::cullDegenerates()
     {
-        std::erase_if(
-            segments,
+        segments.eraseIf(
             [](Segment & segment)
             {
                 if (segment.isCurve)
@@ -432,8 +431,7 @@ namespace qc::image::sdf
 
     void Outline::cullDegenerates()
     {
-        std::erase_if(
-            contours,
+        contours.eraseIf(
             [](Contour & contour)
             {
                 contour.cullDegenerates();
@@ -469,9 +467,9 @@ namespace qc::image::sdf
 
     GrayImage generate(const Outline & outline, const int size, const double range)
     {
-        static thread_local std::vector<double> distances{};
-        static thread_local std::vector<double> rowIntercepts{};
-        static thread_local std::vector<_Row> rows{};
+        static thread_local List<double> distances{};
+        static thread_local List<double> rowIntercepts{};
+        static thread_local List<_Row> rows{};
 
         if (!outline.isValid())
         {
@@ -486,7 +484,6 @@ namespace qc::image::sdf
         }
 
         // Reset buffers
-        // TODO: Use PoD vector which doesn't zero on resize
         {
             distances.resize(unat(size * size));
             for (double & distance : distances) distance = infinity<double>;

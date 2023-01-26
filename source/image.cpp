@@ -52,12 +52,17 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::outline(const P & color) const noexcept requires (!std::is_const_v<P>)
+    void ImageView<P>::outline(const int thickness, const P & color) const noexcept requires (!std::is_const_v<P>)
     {
-        horizontalLine({0, 0}, _size.x, color);
-        horizontalLine({0, _size.y - 1}, _size.x, color);
-        verticalLine({0, 1}, _size.y - 2, color);
-        verticalLine({_size.x - 1, 1}, _size.y - 2, color);
+        if (thickness)
+        {
+            horizontalLine({0, 0}, _size.x, color);
+            horizontalLine({0, _size.y - 1}, _size.x, color);
+            verticalLine({0, 1}, _size.y - 2, color);
+            verticalLine({_size.x - 1, 1}, _size.y - 2, color);
+
+            view(ivec2{1}, _size - 2).outline(thickness - 1, color);
+        }
     }
 
     template <typename P>
