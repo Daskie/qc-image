@@ -1,5 +1,7 @@
 #include <qc-image/image.hpp>
 
+#include <qc-core/utils.hpp>
+
 namespace qc::image
 {
     static void * _realloc(void * const oldPtr, const size_t oldSize, const size_t newSize)
@@ -30,20 +32,20 @@ namespace qc::image
 namespace qc::image
 {
     template <typename P>
-    void Image<P>::fill(const P & color) noexcept
+    void Image<P>::fill(const P & color)
     {
         std::fill_n(_pixels, _size.x * _size.y, color);
     }
 
     template <typename P>
-    P * Image<P>::release() noexcept
+    P * Image<P>::release()
     {
         _size = {};
         return std::exchange(_pixels, nullptr);
     }
 
     template <typename P>
-    void ImageView<P>::fill(const P & color) const noexcept requires (!std::is_const_v<P>)
+    void ImageView<P>::fill(const P & color) const requires (!std::is_const_v<P>)
     {
         for (int y{0}; y < _size.y; ++y)
         {
@@ -52,7 +54,7 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::outline(const int thickness, const P & color) const noexcept requires (!std::is_const_v<P>)
+    void ImageView<P>::outline(const int thickness, const P & color) const requires (!std::is_const_v<P>)
     {
         if (thickness)
         {
@@ -66,7 +68,7 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::horizontalLine(const ivec2 pos, const int length, const P & color) const noexcept requires (!std::is_const_v<P>)
+    void ImageView<P>::horizontalLine(const ivec2 pos, const int length, const P & color) const requires (!std::is_const_v<P>)
     {
         if (length > 0 && pos.y >= 0 && pos.y < _size.y)
         {
@@ -76,7 +78,7 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::verticalLine(const ivec2 pos, const int length, const P & color) const noexcept requires (!std::is_const_v<P>)
+    void ImageView<P>::verticalLine(const ivec2 pos, const int length, const P & color) const requires (!std::is_const_v<P>)
     {
         if (length > 0 && pos.x >= 0 && pos.x < _size.x)
         {
@@ -91,7 +93,7 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::checkerboard(const int squareSize, const P & backColor, const P & foreColor) const noexcept requires (!std::is_const_v<P>)
+    void ImageView<P>::checkerboard(const int squareSize, const P & backColor, const P & foreColor) const requires (!std::is_const_v<P>)
     {
         // TODO: Make more efficient
         for (ivec2 p{0, 0}; p.y < _size.y; ++p.y)
@@ -104,7 +106,7 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::copy(const ImageView<const P> & src) const noexcept requires (!std::is_const_v<P>)
+    void ImageView<P>::copy(const ImageView<const P> & src) const requires (!std::is_const_v<P>)
     {
         assert(_size == src._size);
 
@@ -117,62 +119,68 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::copy(const Image & src) const noexcept requires (!std::is_const_v<P>)
+    void ImageView<P>::copy(const Image & src) const requires (!std::is_const_v<P>)
     {
         copy(src.view());
     }
 
     template <typename P>
-    Image<P> read(const std::filesystem::path & file, const bool allowComponentPadding)
+    Result<Image<P>> read(const std::filesystem::path & file, const bool allowComponentPadding)
     {
-        const std::filesystem::file_status fileStatus{std::filesystem::status(file)};
-        if (fileStatus.type() != std::filesystem::file_type::regular)
-        {
-            throw std::exception{};
-        }
+        const Result<List<u8>> fileData{utils::readFile(file)};
+
+        FAIL_IF(!fileData);
 
         int x, y, channels;
-        u8 * data{stbi_load(file.string().c_str(), &x, &y, &channels, allowComponentPadding ? Image<P>::components : 0)};
+        u8 * const data{stbi_load_from_memory(fileData->data(), int(fileData->size()), &x, &y, &channels, allowComponentPadding ? Image<P>::components : 0)};
+        ScopeGuard memGuard{[data]() { STBI_FREE(data); }};
 
-        if (channels > Image<P>::components || !allowComponentPadding && channels < Image<P>::components)
-        {
-            throw std::exception{};
-        }
+        FAIL_IF(!data);
+        FAIL_IF(channels > Image<P>::components || !allowComponentPadding && channels < Image<P>::components);
 
-        return Image<P>{ivec2{x, y}, reinterpret_cast<P *>(data)};
+        memGuard.release();
+        return Image<P>{ivec2{x, y}, std::bit_cast<P *>(data)};
     }
 
-    GrayImage readGrayImage(const std::filesystem::path & file)
+    Result<GrayImage> readGrayImage(const std::filesystem::path & file)
     {
         return read<u8>(file, false);
     }
 
-    GrayAlphaImage readGrayAlphaImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    Result<GrayAlphaImage> readGrayAlphaImage(const std::filesystem::path & file, const bool allowComponentPadding)
     {
         return read<ucvec2>(file, allowComponentPadding);
     }
 
-    RgbImage readRgbImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    Result<RgbImage> readRgbImage(const std::filesystem::path & file, const bool allowComponentPadding)
     {
         return read<ucvec3>(file, allowComponentPadding);
     }
 
-    RgbaImage readRgbaImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    Result<RgbaImage> readRgbaImage(const std::filesystem::path & file, const bool allowComponentPadding)
     {
         return read<ucvec4>(file, allowComponentPadding);
     }
 
     template <typename P>
-    void write(const Image<P> & image, const std::filesystem::path & file)
+    bool write(const Image<P> & image, const std::filesystem::path & file)
     {
         const std::filesystem::path extension{file.extension()};
         if (extension == ".png")
         {
-            stbi_write_png(file.string().c_str(), image.size().x, image.size().y, image.components, image.pixels(), image.size().x * int(sizeof(P)));
+            int dataLength{};
+            u8 * const data{stbi_write_png_to_mem(std::bit_cast<const u8*>(image.pixels()), image.size().x * int(sizeof(P)), image.size().x, image.size().y, image.components, &dataLength)};
+            const qc::ScopeGuard dataGuard{[&]() { STBI_FREE(data); }};
+
+            FAIL_IF(dataLength <= 0 || !data);
+
+            FAIL_IF(!utils::writeFile(file, data, unat(dataLength)));
+
+            return true;
         }
         else
         {
-            throw std::exception{}; // Currently unsupported
+            return false; // Currently unsupported
         }
     }
 
@@ -188,13 +196,13 @@ namespace qc::image
     template class ImageView<ucvec3>;
     template class ImageView<ucvec4>;
 
-    template GrayImage read<u8>(const std::filesystem::path &, bool);
-    template GrayAlphaImage read<ucvec2>(const std::filesystem::path &, bool);
-    template RgbImage read<ucvec3>(const std::filesystem::path &, bool);
-    template RgbaImage read<ucvec4>(const std::filesystem::path &, bool);
+    template Result<GrayImage> read<u8>(const std::filesystem::path &, bool);
+    template Result<GrayAlphaImage> read<ucvec2>(const std::filesystem::path &, bool);
+    template Result<RgbImage> read<ucvec3>(const std::filesystem::path &, bool);
+    template Result<RgbaImage> read<ucvec4>(const std::filesystem::path &, bool);
 
-    template void write(const GrayImage &, const std::filesystem::path &);
-    template void write(const GrayAlphaImage &, const std::filesystem::path &);
-    template void write(const RgbImage &, const std::filesystem::path &);
-    template void write(const RgbaImage &, const std::filesystem::path &);
+    template bool write(const GrayImage &, const std::filesystem::path &);
+    template bool write(const GrayAlphaImage &, const std::filesystem::path &);
+    template bool write(const RgbImage &, const std::filesystem::path &);
+    template bool write(const RgbaImage &, const std::filesystem::path &);
 }

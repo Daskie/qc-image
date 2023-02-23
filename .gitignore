@@ -1,4 +1,4 @@
-test/*-out.png
+test/*.png
 
 .idea/
 build/

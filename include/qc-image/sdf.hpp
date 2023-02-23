@@ -11,14 +11,14 @@ namespace qc::image::sdf
     {
         dvec2 p1, p2;
 
-        bool isValid() const noexcept;
+        [[nodiscard]] bool isValid() const;
     };
 
     struct Curve
     {
         dvec2 p1, p2, p3;
 
-        bool isValid() const noexcept;
+        [[nodiscard]] bool isValid() const;
     };
 
     struct Segment
@@ -30,11 +30,11 @@ namespace qc::image::sdf
             Curve curve;
         };
 
-        Segment() noexcept = default;
-        Segment(const dvec2 & p1, const dvec2 & p2) noexcept;
-        Segment(const dvec2 & p1, const dvec2 & p2, const dvec2 & p3) noexcept;
+        Segment() = default;
+        Segment(const dvec2 & p1, const dvec2 & p2);
+        Segment(const dvec2 & p1, const dvec2 & p2, const dvec2 & p3);
 
-        bool isValid() const noexcept;
+        [[nodiscard]] bool isValid() const;
     };
 
     struct Contour
@@ -45,7 +45,7 @@ namespace qc::image::sdf
 
         void transform(const dvec2 & scale, const dvec2 & translate);
 
-        bool isValid() const noexcept;
+        [[nodiscard]] bool isValid() const;
     };
 
     struct Outline
@@ -56,7 +56,8 @@ namespace qc::image::sdf
 
         void transform(const dvec2 & scale, const dvec2 & translate);
 
-        bool isValid() const noexcept;
+        [[nodiscard]] bool isValid() const;
+
     };
 
     struct OutlineInvalidError {};
@@ -64,7 +65,7 @@ namespace qc::image::sdf
     ///
     /// ...
     /// Range is the total width of the distance gradient from 0.0 to 1.0
-    /// @throws OutlineInvalidError if `outline.isValid()` is false
+    /// @return generated image, or empty image if `outline.isValid()` is false
     ///
     GrayImage generate(const Outline & outline, const int size, const double range);
 }
@@ -73,12 +74,12 @@ namespace qc::image::sdf
 
 namespace qc::image::sdf
 {
-    inline Segment::Segment(const dvec2 & p1, const dvec2 & p2) noexcept :
+    inline Segment::Segment(const dvec2 & p1, const dvec2 & p2) :
         isCurve{false},
         line{p1, p2}
     {}
 
-    inline Segment::Segment(const dvec2 & p1, const dvec2 & p2, const dvec2 & p3) noexcept :
+    inline Segment::Segment(const dvec2 & p1, const dvec2 & p2, const dvec2 & p3) :
         isCurve{true},
         curve{p1, p2, p3}
     {}

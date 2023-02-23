@@ -1,5 +1,3 @@
-### QC-IMAGE-TEST ##############################################################
-
 qc_setup_target(
     qc-image-test
     EXECUTABLE

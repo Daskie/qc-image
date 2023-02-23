@@ -7,11 +7,7 @@ include(FetchContent)
 FetchContent_Declare(qc-cmake GIT_REPOSITORY https://github.com/Daskie/qc-cmake.git)
 FetchContent_MakeAvailable(qc-cmake)
 
-### DEPENDENCIES ###############################################################
-
 find_package(qc-core)
-
-### QC-IMAGE ###################################################################
 
 qc_setup_target(
     qc-image
@@ -20,11 +16,7 @@ qc_setup_target(
         qc-core::qc-core
 )
 
-### SUBDIRECTORIES #############################################################
-
 add_subdirectory(test)
-
-### INSTALL ####################################################################
 
 qc_setup_install(
     TARGETS

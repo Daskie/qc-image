@@ -320,22 +320,22 @@ namespace qc::image::sdf
         }
     }
 
-    bool Line::isValid() const noexcept
+    bool Line::isValid() const
     {
         return _isPointValid(p1) && _isPointValid(p2) && p1 != p2;
     }
 
-    bool Curve::isValid() const noexcept
+    bool Curve::isValid() const
     {
         return _isPointValid(p1) && _isPointValid(p2) && _isPointValid(p3) && p1 != p2 && p2 != p3 && p3 != p1;
     }
 
-    bool Segment::isValid() const noexcept
+    bool Segment::isValid() const
     {
         return isCurve ? curve.isValid() : line.isValid();
     }
 
-    bool Contour::isValid() const noexcept
+    bool Contour::isValid() const
     {
         if (segments.size() < 2u)
         {
@@ -447,7 +447,7 @@ namespace qc::image::sdf
         }
     }
 
-    bool Outline::isValid() const noexcept
+    bool Outline::isValid() const
     {
         if (contours.empty())
         {
@@ -471,10 +471,7 @@ namespace qc::image::sdf
         static thread_local List<double> rowIntercepts{};
         static thread_local List<_Row> rows{};
 
-        if (!outline.isValid())
-        {
-            throw OutlineInvalidError{};
-        }
+        FAIL_IF(!outline.isValid());
 
         // Count total segments
         unat segmentCount{0u};
