@@ -311,7 +311,7 @@ namespace qc::image::sdf
 
         void _updatePointIntercepts(const Contour & contour, _Row * const rows, const int size)
         {
-            for (unat i{0u}, n{contour.segments.size() - 1u}; i < n; ++i)
+            for (u64 i{0u}, n{contour.segments.size() - 1u}; i < n; ++i)
             {
                 _updatePointIntercepts(contour.segments[i], contour.segments[i + 1u], rows, size);
             }
@@ -352,7 +352,7 @@ namespace qc::image::sdf
         }
 
         // Each segment must connect to the next
-        for (unat i{1u}; i < segments.size(); ++i)
+        for (u64 i{1u}; i < segments.size(); ++i)
         {
             const Segment & segment1{segments[i - 1u]};
             const Segment & segment2{segments[i]};
@@ -474,7 +474,7 @@ namespace qc::image::sdf
         FAIL_IF(!outline.isValid());
 
         // Count total segments
-        unat segmentCount{0u};
+        u64 segmentCount{0u};
         for (const Contour & contour : outline.contours)
         {
             segmentCount += contour.segments.size();
@@ -482,13 +482,13 @@ namespace qc::image::sdf
 
         // Reset buffers
         {
-            distances.resize(unat(size * size));
+            distances.resize(u64(size * size));
             for (double & distance : distances) distance = infinity<double>;
 
-            const unat maxInterceptCount{segmentCount * 2u};
-            rowIntercepts.resize(unat(size) * maxInterceptCount);
+            const u64 maxInterceptCount{segmentCount * 2u};
+            rowIntercepts.resize(u64(size) * maxInterceptCount);
 
-            rows.resize(unat(size));
+            rows.resize(u64(size));
             double * firstDistance{distances.data() + size * size - size};
             double * firstIntercept{rowIntercepts.data()};
             for (_Row & row: rows)

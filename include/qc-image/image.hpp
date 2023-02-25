@@ -41,29 +41,29 @@ namespace qc::image
 
         void fill(const P & color);
 
-        [[nodiscard]] ImageView<P> view();
-        [[nodiscard]] ImageView<const P> view() const;
-        [[nodiscard]] ImageView<P> view(const ispan2 & span);
-        [[nodiscard]] ImageView<const P> view(const ispan2 & span) const;
-        [[nodiscard]] ImageView<P> view(ivec2 position, ivec2 size);
-        [[nodiscard]] ImageView<const P> view(ivec2 position, ivec2 size) const;
+        nodisc ImageView<P> view();
+        nodisc ImageView<const P> view() const;
+        nodisc ImageView<P> view(const ispan2 & span);
+        nodisc ImageView<const P> view(const ispan2 & span) const;
+        nodisc ImageView<P> view(ivec2 position, ivec2 size);
+        nodisc ImageView<const P> view(ivec2 position, ivec2 size) const;
 
-        [[nodiscard]] ivec2 size() const { return _size; }
+        nodisc ivec2 size() const { return _size; }
 
-        [[nodiscard]] int width() const { return _size.x; };
+        nodisc int width() const { return _size.x; };
 
-        [[nodiscard]] int height() const { return _size.y; };
+        nodisc int height() const { return _size.y; };
 
-        [[nodiscard]] P * pixels() { return _pixels; };
-        [[nodiscard]] const P * pixels() const { return _pixels; };
+        nodisc P * pixels() { return _pixels; };
+        nodisc const P * pixels() const { return _pixels; };
 
-        [[nodiscard]] P * row(int y);
-        [[nodiscard]] const P * row(int y) const;
+        nodisc P * row(int y);
+        nodisc const P * row(int y) const;
 
-        [[nodiscard]] P & at(ivec2 p);
-        [[nodiscard]] const P & at(ivec2 p) const;
-        [[nodiscard]] P & at(int x, int y);
-        [[nodiscard]] const P & at(int x, int y) const;
+        nodisc P & at(ivec2 p);
+        nodisc const P & at(ivec2 p) const;
+        nodisc P & at(int x, int y);
+        nodisc const P & at(int x, int y) const;
 
         P * release();
 
@@ -98,25 +98,25 @@ namespace qc::image
         ImageView & operator=(const ImageView &) = default;
         ImageView & operator=(const ImageView<std::remove_const_t<P>> & other) requires std::is_const_v<P>;
 
-        [[nodiscard]] ImageView view(const ispan2 & span) const;
-        [[nodiscard]] ImageView view(ivec2 position, ivec2 size) const;
+        nodisc ImageView view(const ispan2 & span) const;
+        nodisc ImageView view(ivec2 position, ivec2 size) const;
 
-        [[nodiscard]] Image * image() const { return _image; }
+        nodisc Image * image() const { return _image; }
 
-        [[nodiscard]] const ispan2 & span() const { return _span; }
+        nodisc const ispan2 & span() const { return _span; }
 
-        [[nodiscard]] ivec2 pos() const { return _span.min; }
+        nodisc ivec2 pos() const { return _span.min; }
 
-        [[nodiscard]] ivec2 size() const { return _size; }
+        nodisc ivec2 size() const { return _size; }
 
-        [[nodiscard]] int width() const { return _size.x; }
+        nodisc int width() const { return _size.x; }
 
-        [[nodiscard]] int height() const { return _size.y; }
+        nodisc int height() const { return _size.y; }
 
-        [[nodiscard]] P * row(int y) const;
+        nodisc P * row(int y) const;
 
-        [[nodiscard]] P & at(ivec2 p) const;
-        [[nodiscard]] P & at(int x, int y) const;
+        nodisc P & at(ivec2 p) const;
+        nodisc P & at(int x, int y) const;
 
         void fill(const P & color) const requires (!std::is_const_v<P>);
 
@@ -148,13 +148,13 @@ namespace qc::image
     ///
     /// ...
     ///
-    template <typename P> [[nodiscard]] Result<Image<P>> read(const std::filesystem::path & file, bool allowComponentPadding);
-    [[nodiscard]] Result<GrayImage> readGrayImage(const std::filesystem::path & file);
-    [[nodiscard]] Result<GrayAlphaImage> readGrayAlphaImage(const std::filesystem::path & file, bool allowComponentPadding);
-    [[nodiscard]] Result<RgbImage> readRgbImage(const std::filesystem::path & file, bool allowComponentPadding);
-    [[nodiscard]] Result<RgbaImage> readRgbaImage(const std::filesystem::path & file, bool allowComponentPadding);
+    template <typename P> nodisc Result<Image<P>> read(const std::filesystem::path & file, bool allowComponentPadding);
+    nodisc Result<GrayImage> readGrayImage(const std::filesystem::path & file);
+    nodisc Result<GrayAlphaImage> readGrayAlphaImage(const std::filesystem::path & file, bool allowComponentPadding);
+    nodisc Result<RgbImage> readRgbImage(const std::filesystem::path & file, bool allowComponentPadding);
+    nodisc Result<RgbaImage> readRgbaImage(const std::filesystem::path & file, bool allowComponentPadding);
 
-    template <typename P> [[nodiscard]] bool write(const Image<P> & image, const std::filesystem::path & file);
+    template <typename P> nodisc bool write(const Image<P> & image, const std::filesystem::path & file);
 }
 
 // INLINE IMPLEMENTATION ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -246,12 +246,16 @@ namespace qc::image
     template <typename P>
     inline P * Image<P>::row(const int y)
     {
+        assert(y >= 0 && y < _size.y);
+
         return _pixels + (_size.y - 1 - y) * _size.x;
     }
 
     template <typename P>
     inline const P * Image<P>::row(const int y) const
     {
+        assert(y >= 0 && y < _size.y);
+
         return _pixels + (_size.y - 1 - y) * _size.x;
     }
 
@@ -270,7 +274,7 @@ namespace qc::image
     template <typename P>
     inline P & Image<P>::at(const int x, const int y)
     {
-        assert(x >= 0 && x < _size.x && y >= 0 && y < _size.y);
+        assert(x >= 0 && x < _size.x);
 
         return row(y)[x];
     }
@@ -278,7 +282,7 @@ namespace qc::image
     template <typename P>
     inline const P & Image<P>::at(const int x, const int y) const
     {
-        assert(x >= 0 && x < _size.x && y >= 0 && y < _size.y);
+        assert(x >= 0 && x < _size.x);
 
         return row(y)[x];
     }
@@ -328,7 +332,7 @@ namespace qc::image
     template <typename P>
     inline P & ImageView<P>::at(const int x, const int y) const
     {
-        assert(x >= 0 && x < _size.x && y >= 0 && y < _size.y);
+        assert(x >= 0 && x < _size.x);
 
         return row(y)[x];
     }

@@ -11,14 +11,14 @@ namespace qc::image::sdf
     {
         dvec2 p1, p2;
 
-        [[nodiscard]] bool isValid() const;
+        nodisc bool isValid() const;
     };
 
     struct Curve
     {
         dvec2 p1, p2, p3;
 
-        [[nodiscard]] bool isValid() const;
+        nodisc bool isValid() const;
     };
 
     struct Segment
@@ -34,7 +34,7 @@ namespace qc::image::sdf
         Segment(const dvec2 & p1, const dvec2 & p2);
         Segment(const dvec2 & p1, const dvec2 & p2, const dvec2 & p3);
 
-        [[nodiscard]] bool isValid() const;
+        nodisc bool isValid() const;
     };
 
     struct Contour
@@ -45,7 +45,7 @@ namespace qc::image::sdf
 
         void transform(const dvec2 & scale, const dvec2 & translate);
 
-        [[nodiscard]] bool isValid() const;
+        nodisc bool isValid() const;
     };
 
     struct Outline
@@ -56,7 +56,7 @@ namespace qc::image::sdf
 
         void transform(const dvec2 & scale, const dvec2 & translate);
 
-        [[nodiscard]] bool isValid() const;
+        nodisc bool isValid() const;
 
     };
 

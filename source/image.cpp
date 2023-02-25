@@ -174,7 +174,7 @@ namespace qc::image
 
             FAIL_IF(dataLength <= 0 || !data);
 
-            FAIL_IF(!utils::writeFile(file, data, unat(dataLength)));
+            FAIL_IF(!utils::writeFile(file, data, u64(dataLength)));
 
             return true;
         }
