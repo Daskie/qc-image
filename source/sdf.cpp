@@ -8,16 +8,16 @@ namespace qc::image::sdf
     {
         struct _LineExt
         {
-            dvec2 a;
-            double invLength2;
+            fvec2 a;
+            float invLength2;
         };
 
         struct _CurveExt
         {
-            dvec2 a;
-            dvec2 b;
-            dvec2 c;
-            double maxHalfSubLineLength;
+            fvec2 a;
+            fvec2 b;
+            fvec2 c;
+            float maxHalfSubLineLength;
         };
 
         union _SegmentExt
@@ -28,40 +28,40 @@ namespace qc::image::sdf
 
         struct _Row
         {
-            double * distances;
+            float * distances;
             int interceptCount;
-            double * intercepts;
+            float * intercepts;
         };
 
-        bool _isPointValid(const dvec2 & p)
+        bool _isPointValid(const fvec2 p)
         {
             // Must not be NaN or too big
-            return abs(p.x) <= 1.0e9 && abs(p.y) <= 1.0e9;
+            return abs(p.x) <= 1.0e9f && abs(p.y) <= 1.0e9f;
         }
 
-        dvec2 _evaluateBezier(const _CurveExt & curve, const double t)
+        fvec2 _evaluateBezier(const _CurveExt & curve, const float t)
         {
             return curve.a * t * t + curve.b * t + curve.c;
         }
 
-        dvec2 _evaluateBezier(const _CurveExt & curve, const dvec2 & t)
+        fvec2 _evaluateBezier(const _CurveExt & curve, const fvec2 t)
         {
             return curve.a * t * t + curve.b * t + curve.c;
         }
 
-        dspan2 _detSpan(const Line & line)
+        fspan2 _detSpan(const Line & line)
         {
             return {min(line.p1, line.p2), max(line.p1, line.p2)};
         }
 
-        dspan2 _detSpan(const Curve & curve, const _CurveExt & curveExt)
+        fspan2 _detSpan(const Curve & curve, const _CurveExt & curveExt)
         {
-            dspan2 span{min(curve.p1, curve.p3), max(curve.p1, curve.p3)};
+            fspan2 span{min(curve.p1, curve.p3), max(curve.p1, curve.p3)};
 
             if (!span.contains(curve.p2))
             {
-                const dvec2 extremeT{clamp(curveExt.b / (-2.0 * curveExt.a), 0.0, 1.0)};
-                const dvec2 extremeP{_evaluateBezier(curveExt, extremeT)};
+                const fvec2 extremeT{clamp(curveExt.b / (-2.0f * curveExt.a), 0.0f, 1.0f)};
+                const fvec2 extremeP{_evaluateBezier(curveExt, extremeT)};
                 minify(span.min, extremeP);
                 maxify(span.max, extremeP);
             }
@@ -69,41 +69,41 @@ namespace qc::image::sdf
             return span;
         }
 
-        dspan2 _detSpan(const Segment & segment, const _SegmentExt & segmentExt)
+        fspan2 _detSpan(const Segment & segment, const _SegmentExt & segmentExt)
         {
             return segment.isCurve ? _detSpan(segment.curve, segmentExt.curve) : _detSpan(segment.line);
         }
 
-        double _distance2To(const Line & line, const _LineExt & lineExt, const dvec2 & p)
+        float _distance2To(const Line & line, const _LineExt & lineExt, const fvec2 p)
         {
-            const dvec2 b{p - line.p1};
-            const double t{clamp(dot(lineExt.a, b) * lineExt.invLength2, 0.0, 1.0)};
-            const dvec2 c{t * lineExt.a};
+            const fvec2 b{p - line.p1};
+            const float t{clamp(dot(lineExt.a, b) * lineExt.invLength2, 0.0f, 1.0f)};
+            const fvec2 c{t * lineExt.a};
             return distance2(b, c);
         }
 
-        double _findClosestPoint(const _CurveExt & curve, const dvec2 & p, double lowT, double highT)
+        float _findClosestPoint(const _CurveExt & curve, const fvec2 p, float lowT, float highT)
         {
-            double midT{(lowT + highT) * 0.5};
-            dvec2 lowB{_evaluateBezier(curve, lowT)};
-            dvec2 midB{_evaluateBezier(curve, midT)};
-            dvec2 highB{_evaluateBezier(curve, highT)};
-            double lowDist2{distance2(p, lowB)};
-            double midDist2{distance2(p, midB)};
-            double highDist2{distance2(p, highB)};
-            double minDist2{min(min(lowDist2, midDist2), highDist2)};
-            double halfLength{(highT - lowT) * 0.5};
+            float midT{(lowT + highT) * 0.5f};
+            fvec2 lowB{_evaluateBezier(curve, lowT)};
+            fvec2 midB{_evaluateBezier(curve, midT)};
+            fvec2 highB{_evaluateBezier(curve, highT)};
+            float lowDist2{distance2(p, lowB)};
+            float midDist2{distance2(p, midB)};
+            float highDist2{distance2(p, highB)};
+            float minDist2{min(min(lowDist2, midDist2), highDist2)};
+            float halfLength{(highT - lowT) * 0.5f};
 
             while (halfLength > curve.maxHalfSubLineLength)
             {
-                halfLength *= 0.5;
+                halfLength *= 0.5f;
 
-                const double t1{midT - halfLength};
-                const double t2{midT + halfLength};
-                const dvec2 b1{_evaluateBezier(curve, t1)};
-                const dvec2 b2{_evaluateBezier(curve, t2)};
-                const double d1{distance2(p, b1)};
-                const double d2{distance2(p, b2)};
+                const float t1{midT - halfLength};
+                const float t2{midT + halfLength};
+                const fvec2 b1{_evaluateBezier(curve, t1)};
+                const fvec2 b2{_evaluateBezier(curve, t2)};
+                const float d1{distance2(p, b1)};
+                const float d2{distance2(p, b2)};
 
                 minDist2 = min(minDist2, d1, d2);
 
@@ -139,33 +139,33 @@ namespace qc::image::sdf
             return distance2ToLine(lowB, highB, p);
         }
 
-        double _distance2To(const Curve &, const _CurveExt & curveExt, const dvec2 & p)
+        float _distance2To(const Curve &, const _CurveExt & curveExt, const fvec2 p)
         {
             // Point of maximum curvature
-            const double d{-2.0 * magnitude2(curveExt.a)};
-            const double u{d == 0.0 ? 0.0 : clamp(dot(curveExt.a, curveExt.b) / d, 0.0, 1.0)};
+            const float d{-2.0f * magnitude2(curveExt.a)};
+            const float u{d == 0.0f ? 0.0f : clamp(dot(curveExt.a, curveExt.b) / d, 0.0f, 1.0f)};
 
-            double dist2{infinity<double>};
+            float dist2{infinity<float>};
 
-            if (u > 0.0)
+            if (u > 0.0f)
             {
-                minify(dist2, _findClosestPoint(curveExt, p, 0.0, u));
+                minify(dist2, _findClosestPoint(curveExt, p, 0.0f, u));
             }
 
-            if (u < 1.0)
+            if (u < 1.0f)
             {
-                minify(dist2, _findClosestPoint(curveExt, p, u, 1.0));
+                minify(dist2, _findClosestPoint(curveExt, p, u, 1.0f));
             }
 
             return dist2;
         }
 
-        double _distance2To(const Segment & segment, const _SegmentExt & segmentExt, const dvec2 & p)
+        float _distance2To(const Segment & segment, const _SegmentExt & segmentExt, const fvec2 p)
         {
             return segment.isCurve ? _distance2To(segment.curve, segmentExt.curve, p) : _distance2To(segment.line, segmentExt.line, p);
         }
 
-        void _updateDistances(const Segment & segment, const _SegmentExt & segmentExt, const int size, const double halfRange, _Row * const rows, const dspan2 bounds)
+        void _updateDistances(const Segment & segment, const _SegmentExt & segmentExt, const int size, const float halfRange, _Row * const rows, const fspan2 bounds)
         {
             const ispan2 pixelBounds{max(floor<int>(bounds.min - halfRange), 0), min(ceil<int>(bounds.max + halfRange), size)};
 
@@ -175,7 +175,7 @@ namespace qc::image::sdf
 
                 for (p.x = pixelBounds.min.x; p.x < pixelBounds.max.x; ++p.x)
                 {
-                    minify(row.distances[p.x], _distance2To(segment, segmentExt, dvec2(p) + 0.5));
+                    minify(row.distances[p.x], _distance2To(segment, segmentExt, fvec2(p) + 0.5f));
                 }
             }
         }
@@ -188,16 +188,16 @@ namespace qc::image::sdf
                 return;
             }
 
-            const dvec2 delta{line.p2 - line.p1};
-            const double slope{delta.x / delta.y};
-            const double offset{line.p1.x - slope * line.p1.y};
+            const fvec2 delta{line.p2 - line.p1};
+            const float slope{delta.x / delta.y};
+            const float offset{line.p1.x - slope * line.p1.y};
 
             for (int yPx{interceptRows.min}; yPx <= interceptRows.max; ++yPx)
             {
                 _Row & row{rows[yPx]};
 
-                dvec2 intercept;
-                intercept.y = double(yPx) + 0.5;
+                fvec2 intercept;
+                intercept.y = float(yPx) + 0.5f;
                 intercept.x = slope * intercept.y + offset;
 
                 // Explicitly disallow endpoint intercepts
@@ -214,15 +214,15 @@ namespace qc::image::sdf
             {
                 _Row & row{rows[yPx]};
 
-                const double y{double(yPx) + 0.5};
+                const float y{float(yPx) + 0.5f};
 
-                const Duo<double> roots{quadraticRoots(curveExt.a.y, curveExt.b.y, curveExt.c.y - y)};
+                const Duo<float> roots{quadraticRoots(curveExt.a.y, curveExt.b.y, curveExt.c.y - y)};
 
-                for (const double t : roots)
+                for (const float t : roots)
                 {
-                    if (t > 0.0 && t < 1.0)
+                    if (t > 0.0f && t < 1.0f)
                     {
-                        const dvec2 intercept{_evaluateBezier(curveExt, t)};
+                        const fvec2 intercept{_evaluateBezier(curveExt, t)};
 
                         // Explicitly disallow endpoint intercepts
                         if (intercept != curve.p1 && intercept != curve.p2)
@@ -245,16 +245,16 @@ namespace qc::image::sdf
         {
             return _LineExt{
                 .a = line.p2 - line.p1,
-                .invLength2 = 1.0 / distance2(line.p1, line.p2)};
+                .invLength2 = 1.0f / distance2(line.p1, line.p2)};
         }
 
         _CurveExt _calcExtra(const Curve & curve)
         {
             return _CurveExt{
-                .a = curve.p1 - 2.0 * curve.p2 + curve.p3,
-                .b = 2.0 * (curve.p2 - curve.p1),
+                .a = curve.p1 - 2.0f * curve.p2 + curve.p3,
+                .b = 2.0f * (curve.p2 - curve.p1),
                 .c = curve.p1,
-                .maxHalfSubLineLength = 1.0 / (distance(curve.p1, curve.p2) + distance(curve.p2, curve.p3))};
+                .maxHalfSubLineLength = 1.0f / (distance(curve.p1, curve.p2) + distance(curve.p2, curve.p3))};
         }
 
         _SegmentExt _calcExtra(const Segment & segment)
@@ -269,17 +269,17 @@ namespace qc::image::sdf
             }
         }
 
-        void _process(const Segment & segment, const int size, const double halfRange, _Row * const rows)
+        void _process(const Segment & segment, const int size, const float halfRange, _Row * const rows)
         {
             const _SegmentExt segmentExt{_calcExtra(segment)};
 
-            const dspan2 bounds{_detSpan(segment, segmentExt)};
+            const fspan2 bounds{_detSpan(segment, segmentExt)};
 
             _updateDistances(segment, segmentExt, size, halfRange, rows, bounds);
 
-            ispan1 interceptRows{ceil<int>(bounds.min.y - 0.5), floor<int>(bounds.max.y - 0.5)};
-            if (double(interceptRows.min) + 0.5 == bounds.min.y) ++interceptRows.min;
-            if (double(interceptRows.max) + 0.5 == bounds.max.y) --interceptRows.max;
+            ispan1 interceptRows{ceil<int>(bounds.min.y - 0.5f), floor<int>(bounds.max.y - 0.5f)};
+            if (float(interceptRows.min) + 0.5f == bounds.min.y) ++interceptRows.min;
+            if (float(interceptRows.max) + 0.5f == bounds.max.y) --interceptRows.max;
             clampify(interceptRows, 0, size - 1);
             if (interceptRows.max >= interceptRows.min)
             {
@@ -289,15 +289,15 @@ namespace qc::image::sdf
 
         void _updatePointIntercepts(const Segment & segment1, const Segment & segment2, _Row * const rows, const int size)
         {
-            const dvec2 p{segment1.isCurve ? segment1.curve.p3 : segment1.line.p2};
+            const fvec2 p{segment1.isCurve ? segment1.curve.p3 : segment1.line.p2};
 
-            if (p.y > 0.0)
+            if (p.y > 0.0f)
             {
                 const auto [f, i]{fract_i<int>(p.y)};
-                if (f == 0.5 && i < size)
+                if (f == 0.5f && i < size)
                 {
-                    const dvec2 p1{segment1.isCurve ? segment1.curve.p2 : segment1.line.p1};
-                    const dvec2 p2{segment2.isCurve ? segment2.curve.p2 : segment2.line.p2};
+                    const fvec2 p1{segment1.isCurve ? segment1.curve.p2 : segment1.line.p1};
+                    const fvec2 p2{segment2.isCurve ? segment2.curve.p2 : segment2.line.p2};
 
                     // Only an intersection if the adjacent points are on opposite sides of the scanline
                     if (abs(sign(p1.y - p.y) - sign(p2.y - p.y)) == 2)
@@ -356,8 +356,8 @@ namespace qc::image::sdf
         {
             const Segment & segment1{segments[i - 1u]};
             const Segment & segment2{segments[i]};
-            const dvec2 & p1{segment1.isCurve ? segment1.curve.p3 : segment1.line.p2};
-            const dvec2 & p2{segment2.isCurve ? segment2.curve.p1 : segment2.line.p1};
+            const fvec2 p1{segment1.isCurve ? segment1.curve.p3 : segment1.line.p2};
+            const fvec2 p2{segment2.isCurve ? segment2.curve.p1 : segment2.line.p1};
             if (p1 != p2)
             {
                 return false;
@@ -368,8 +368,8 @@ namespace qc::image::sdf
         {
             const Segment & segment1{segments.back()};
             const Segment & segment2{segments.front()};
-            const dvec2 & p1{segment1.isCurve ? segment1.curve.p3 : segment1.line.p2};
-            const dvec2 & p2{segment2.isCurve ? segment2.curve.p1 : segment2.line.p1};
+            const fvec2 p1{segment1.isCurve ? segment1.curve.p3 : segment1.line.p2};
+            const fvec2 p2{segment2.isCurve ? segment2.curve.p1 : segment2.line.p1};
             if (p1 != p2)
             {
                 return false;
@@ -406,7 +406,7 @@ namespace qc::image::sdf
             });
     }
 
-    void Contour::transform(const dvec2 & scale, const dvec2 & translate)
+    void Contour::transform(const fvec2 scale, const fvec2 translate)
     {
         for (Segment & segment : segments)
         {
@@ -439,7 +439,7 @@ namespace qc::image::sdf
             });
     }
 
-    void Outline::transform(const dvec2 & scale, const dvec2 & translate)
+    void Outline::transform(const fvec2 scale, const fvec2 translate)
     {
         for (Contour & contour : contours)
         {
@@ -465,10 +465,10 @@ namespace qc::image::sdf
         return true;
     }
 
-    GrayImage generate(const Outline & outline, const int size, const double range)
+    GrayImage generate(const Outline & outline, const int size, const float range)
     {
-        static thread_local List<double> distances{};
-        static thread_local List<double> rowIntercepts{};
+        static thread_local List<float> distances{};
+        static thread_local List<float> rowIntercepts{};
         static thread_local List<_Row> rows{};
 
         FAIL_IF(!outline.isValid());
@@ -483,14 +483,14 @@ namespace qc::image::sdf
         // Reset buffers
         {
             distances.resize(u64(size * size));
-            for (double & distance : distances) distance = infinity<double>;
+            for (float & distance : distances) distance = infinity<float>;
 
             const u64 maxInterceptCount{segmentCount * 2u};
             rowIntercepts.resize(u64(size) * maxInterceptCount);
 
             rows.resize(u64(size));
-            double * firstDistance{distances.data() + size * size - size};
-            double * firstIntercept{rowIntercepts.data()};
+            float * firstDistance{distances.data() + size * size - size};
+            float * firstIntercept{rowIntercepts.data()};
             for (_Row & row: rows)
             {
                 row.distances = firstDistance;
@@ -504,7 +504,7 @@ namespace qc::image::sdf
 
         // Process segments to calculate distances and row intersections
 
-        const double halfRange{range * 0.5};
+        const float halfRange{range * 0.5f};
 
         for (const Contour & contour : outline.contours)
         {
@@ -519,14 +519,14 @@ namespace qc::image::sdf
 
         // Sqrt distances
 
-        for (double & distance : distances)
+        for (float & distance : distances)
         {
             distance = std::sqrt(distance);
         }
 
         // Sort row intersections and invert internal distances
 
-        const double fSize{double(size)};
+        const float fSize{float(size)};
 
         for (_Row & row : rows)
         {
@@ -541,14 +541,14 @@ namespace qc::image::sdf
 
             for (int i{1}; i < row.interceptCount; i += 2)
             {
-                dspan1 xSpan{row.intercepts[i - 1], row.intercepts[i]};
-                clampify(xSpan, 0.0, fSize);
+                fspan1 xSpan{row.intercepts[i - 1], row.intercepts[i]};
+                clampify(xSpan, 0.0f, fSize);
 
-                const ispan1 xSpanPx{ceil<int>(xSpan.min - 0.5), floor<int>(xSpan.max - 0.5)};
+                const ispan1 xSpanPx{ceil<int>(xSpan.min - 0.5f), floor<int>(xSpan.max - 0.5f)};
 
                 for (int xPx{xSpanPx.min}; xPx <= xSpanPx.max; ++xPx)
                 {
-                    double & distance{row.distances[xPx]};
+                    float & distance{row.distances[xPx]};
                     distance = -distance;
                 }
             }
@@ -558,14 +558,14 @@ namespace qc::image::sdf
 
         GrayImage image{size, size};
 
-        const double * src{distances.data()};
-        const double * const srcEnd{src + size * size};
+        const float * src{distances.data()};
+        const float * const srcEnd{src + size * size};
         u8 * dst{image.pixels()};
-        const double invRange{1.0 / range};
+        const float invRange{1.0f / range};
 
         for (; src < srcEnd; ++src, ++dst)
         {
-            *dst = transnorm<u8>(0.5 - *src * invRange);
+            *dst = transnorm<u8>(0.5f - *src * invRange);
         }
 
         return image;
