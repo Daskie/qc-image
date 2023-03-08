@@ -287,36 +287,67 @@ namespace qc::image::sdf
             }
         }
 
-        void _updatePointIntercepts(const Segment & segment1, const Segment & segment2, _Row * const rows, const int size)
+        void _updatePointIntercepts(const Contour & contour, _Row * const rows, const int size)
         {
-            const fvec2 p{segment1.isCurve ? segment1.curve.p3 : segment1.line.p2};
+            struct Point { fvec2 p; float prevY, nextY; };
+            static thread_local List<Point> points;
 
-            if (p.y > 0.0f)
+            points.resize(contour.segments.size());
+
+            for (u64 i{0u}, endI{contour.segments.size()}; i < endI; ++i)
             {
-                const auto [f, i]{fract_i<int>(p.y)};
-                if (f == 0.5f && i < size)
-                {
-                    const fvec2 p1{segment1.isCurve ? segment1.curve.p2 : segment1.line.p1};
-                    const fvec2 p2{segment2.isCurve ? segment2.curve.p2 : segment2.line.p2};
+                u64 nextI{i + 1u};
+                if (nextI == endI) nextI = 0u;
 
-                    // Only an intersection if the adjacent points are on opposite sides of the scanline
-                    if (abs(sign(p1.y - p.y) - sign(p2.y - p.y)) == 2)
+                const Segment & segment{contour.segments[i]};
+                Point & point{points[i]};
+                Point & nextPoint{points[nextI]};
+
+                if (segment.isCurve)
+                {
+                    point.p = segment.curve.p1;
+                    point.nextY = segment.curve.p2.y == segment.curve.p1.y ? segment.curve.p3.y : segment.curve.p2.y;
+                    nextPoint.prevY = segment.curve.p2.y == segment.curve.p3.y ? segment.curve.p1.y : segment.curve.p2.y;
+                }
+                else
+                {
+                    point.p = segment.line.p1;
+                    point.nextY = segment.line.p2.y;
+                    nextPoint.prevY = segment.line.p1.y;
+                }
+            }
+
+            // Remove consecutive points on same y value
+            for (u64 i{0u}; i < points.size(); ++i)
+            {
+                Point & point{points[i]};
+                if (point.p.y == point.prevY)
+                {
+                    Point & prevPoint{points[(i + points.size() - 1u) % points.size()]};
+                    Point & nextPoint{points[(i + 1u) % points.size()]};
+                    prevPoint.nextY = point.nextY;
+                    nextPoint.prevY = point.prevY;
+                    points.erase(points.begin() + i);
+                    --i;
+                }
+            }
+
+            for (const Point & point : points)
+            {
+                if (point.p.y > 0.0f)
+                {
+                    const auto [f, i]{fract_i<int>(point.p.y)};
+                    if (f == 0.5f && i < size)
                     {
-                        _Row & row{rows[i]};
-                        row.intercepts[row.interceptCount++] = p.x;
+                        // Only an intersection if the adjacent points are on opposite sides of the scanline
+                        if (point.prevY < point.p.y && point.nextY > point.p.y || point.prevY > point.p.y && point.nextY < point.p.y)
+                        {
+                            _Row & row{rows[i]};
+                            row.intercepts[row.interceptCount++] = point.p.x;
+                        }
                     }
                 }
             }
-        }
-
-        void _updatePointIntercepts(const Contour & contour, _Row * const rows, const int size)
-        {
-            for (u64 i{0u}, n{contour.segments.size() - 1u}; i < n; ++i)
-            {
-                _updatePointIntercepts(contour.segments[i], contour.segments[i + 1u], rows, size);
-            }
-
-            _updatePointIntercepts(contour.segments.back(), contour.segments.front(), rows, size);
         }
     }
 
@@ -379,30 +410,26 @@ namespace qc::image::sdf
         return true;
     }
 
-    void Contour::cullDegenerates()
+    void Contour::normalize()
     {
         segments.eraseIf(
             [](Segment & segment)
             {
                 if (segment.isCurve)
                 {
-                    if (segment.curve.p1 == segment.curve.p3)
+                    if (zeroish(cross(segment.curve.p1 - segment.curve.p2, segment.curve.p3 - segment.curve.p2)))
                     {
-                        return true;
-                    }
-
-                    if (segment.curve.p1 == segment.curve.p2 || segment.curve.p3 == segment.curve.p2)
-                    {
+                        // Convert curve to line
                         segment.isCurve = false;
                         segment.line = Line{.p1 = segment.curve.p1, .p2 = segment.curve.p3};
                     }
+                    else
+                    {
+                        return false;
+                    }
+                }
 
-                    return false;
-                }
-                else
-                {
-                    return segment.line.p1 == segment.line.p2;
-                }
+                return segment.line.p1 == segment.line.p2;
             });
     }
 
@@ -429,12 +456,12 @@ namespace qc::image::sdf
         }
     }
 
-    void Outline::cullDegenerates()
+    void Outline::normalize()
     {
         contours.eraseIf(
             [](Contour & contour)
             {
-                contour.cullDegenerates();
+                contour.normalize();
                 return contour.segments.empty();
             });
     }

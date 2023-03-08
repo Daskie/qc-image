@@ -41,7 +41,7 @@ namespace qc::image::sdf
     {
         List<Segment> segments{};
 
-        void cullDegenerates();
+        void normalize();
 
         void transform(fvec2 scale, fvec2 translate);
 
@@ -52,7 +52,7 @@ namespace qc::image::sdf
     {
         List<Contour> contours{};
 
-        void cullDegenerates();
+        void normalize();
 
         void transform(fvec2 scale, fvec2 translate);
 
