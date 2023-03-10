@@ -82,13 +82,12 @@ namespace qc::image
     class ImageView
     {
         using _ImageP = std::remove_const_t<P>;
+        using _Image = std::conditional_t<std::is_const_v<P>, const Image<_ImageP>, Image<_ImageP>>;
         friend class Image<_ImageP>;
         friend class ImageView<std::remove_const_t<P>>;
         friend class ImageView<std::add_const_t<P>>;
 
       public:
-
-        using Image = std::conditional_t<std::is_const_v<P>, const Image<_ImageP>, Image<_ImageP>>;
 
         ImageView() = default;
 
@@ -101,7 +100,7 @@ namespace qc::image
         nodisc ImageView view(const ispan2 & span) const;
         nodisc ImageView view(ivec2 position, ivec2 size) const;
 
-        nodisc Image * image() const { return _image; }
+        nodisc _Image * image() const { return _image; }
 
         nodisc const ispan2 & span() const { return _span; }
 
@@ -129,15 +128,15 @@ namespace qc::image
         void checkerboard(int squareSize, const P & backColor, const P & foreColor) const requires (!std::is_const_v<P>);
 
         void copy(const ImageView<const P> & src) const requires (!std::is_const_v<P>);
-        void copy(const Image & src) const requires (!std::is_const_v<P>);
+        void copy(const _Image & src) const requires (!std::is_const_v<P>);
 
       private:
 
-        Image * _image{};
+        _Image * _image{};
         ispan2 _span{};
         ivec2 _size{};
 
-        ImageView(Image & image, const ispan2 & span);
+        ImageView(_Image & image, const ispan2 & span);
     };
 
     using GrayImageView = ImageView<u8>;
@@ -299,7 +298,7 @@ namespace qc::image
     }
 
     template <typename P>
-    inline ImageView<P>::ImageView(Image & image, const ispan2 & span) :
+    inline ImageView<P>::ImageView(_Image & image, const ispan2 & span) :
         _image{&image},
         _span{span},
         _size{_span.size()}

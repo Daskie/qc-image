@@ -119,7 +119,7 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::copy(const Image & src) const requires (!std::is_const_v<P>)
+    void ImageView<P>::copy(const _Image & src) const requires (!std::is_const_v<P>)
     {
         copy(src.view());
     }
