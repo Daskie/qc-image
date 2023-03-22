@@ -340,7 +340,7 @@ namespace qc::image::sdf
                     if (f == 0.5f && i < size)
                     {
                         // Only an intersection if the adjacent points are on opposite sides of the scanline
-                        if (point.prevY < point.p.y && point.nextY > point.p.y || point.prevY > point.p.y && point.nextY < point.p.y)
+                        if ((point.prevY < point.p.y && point.nextY > point.p.y) || (point.prevY > point.p.y && point.nextY < point.p.y))
                         {
                             _Row & row{rows[i]};
                             row.intercepts[row.interceptCount++] = point.p.x;
@@ -518,7 +518,7 @@ namespace qc::image::sdf
             rows.resize(u64(size));
             float * firstDistance{distances.data() + size * size - size};
             float * firstIntercept{rowIntercepts.data()};
-            for (_Row & row: rows)
+            for (_Row & row : rows)
             {
                 row.distances = firstDistance;
                 row.interceptCount = 0u;
@@ -560,6 +560,7 @@ namespace qc::image::sdf
             std::sort(row.intercepts, row.intercepts + row.interceptCount);
 
             // There should always be an even number of intercepts
+            // TODO: Make interceptCount unsigned
             if (row.interceptCount % 2)
             {
                 assert(false);

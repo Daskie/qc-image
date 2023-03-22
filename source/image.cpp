@@ -13,8 +13,17 @@ namespace qc::image
     }
 }
 
-#pragma warning(push)
-#pragma warning(disable: 4365 4711 4738 5219 6951)
+MSVC_WARNING_PUSH
+MSVC_WARNING_DISABLE(4365 4711 4738 5219 6951)
+GCC_DIAGNOSTIC_PUSH
+GCC_DIAGNOSTIC_IGNORED("-Wconversion")
+GCC_DIAGNOSTIC_IGNORED("-Wduplicated-branches")
+GCC_DIAGNOSTIC_IGNORED("-Wmissing-field-initializers")
+GCC_DIAGNOSTIC_IGNORED("-Wold-style-cast")
+GCC_DIAGNOSTIC_IGNORED("-Wparentheses")
+GCC_DIAGNOSTIC_IGNORED("-Wsign-compare")
+GCC_DIAGNOSTIC_IGNORED("-Wsign-conversion")
+GCC_DIAGNOSTIC_IGNORED("-Wuseless-cast")
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MALLOC(size) ::operator new(size)
 #define STBI_FREE(ptr) ::operator delete(ptr)
@@ -25,7 +34,8 @@ namespace qc::image
 #define STBIW_FREE STBI_FREE
 #define STBIW_REALLOC_SIZED STBI_REALLOC_SIZED
 #include <stb/stb_image_write.h>
-#pragma warning(pop)
+MSVC_WARNING_POP
+GCC_DIAGNOSTIC_POP
 
 #include <qc-core/span-ext.hpp>
 
@@ -136,7 +146,7 @@ namespace qc::image
         ScopeGuard memGuard{[data]() { STBI_FREE(data); }};
 
         FAIL_IF(!data);
-        FAIL_IF(channels > Image<P>::components || !allowComponentPadding && channels < Image<P>::components);
+        FAIL_IF(channels > Image<P>::components || (!allowComponentPadding && channels < Image<P>::components));
 
         memGuard.release();
         return Image<P>{ivec2{x, y}, std::bit_cast<P *>(data)};

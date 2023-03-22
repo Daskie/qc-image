@@ -2,10 +2,7 @@
 
 #include <cassert>
 
-#pragma warning(push)
-#pragma warning(disable: 4738)
 #include <filesystem>
-#pragma warning(pop)
 
 #include <qc-core/core.hpp>
 #include <qc-core/span.hpp>
@@ -172,7 +169,7 @@ namespace qc::image
 
     template <typename P>
     inline Image<P>::Image(const int width, const int height) :
-        Image(width, height, static_cast<P *>(::operator new(width * height * sizeof(P))))
+        Image(width, height, static_cast<P *>(::operator new(u64(width * height) * sizeof(P))))
     {}
 
     template <typename P>
