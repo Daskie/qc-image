@@ -29,7 +29,7 @@ namespace qc::image::sdf
         struct _Row
         {
             float * distances;
-            int interceptCount;
+            int interceptN;
             float * intercepts;
         };
 
@@ -203,7 +203,7 @@ namespace qc::image::sdf
                 // Explicitly disallow endpoint intercepts
                 if (intercept != line.p1 && intercept != line.p2)
                 {
-                    row.intercepts[row.interceptCount++] = intercept.x;
+                    row.intercepts[row.interceptN++] = intercept.x;
                 }
             }
         }
@@ -227,7 +227,7 @@ namespace qc::image::sdf
                         // Explicitly disallow endpoint intercepts
                         if (intercept != curve.p1 && intercept != curve.p2)
                         {
-                            row.intercepts[row.interceptCount++] = intercept.x;
+                            row.intercepts[row.interceptN++] = intercept.x;
                         }
                     }
                 }
@@ -343,7 +343,7 @@ namespace qc::image::sdf
                         if ((point.prevY < point.p.y && point.nextY > point.p.y) || (point.prevY > point.p.y && point.nextY < point.p.y))
                         {
                             _Row & row{rows[i]};
-                            row.intercepts[row.interceptCount++] = point.p.x;
+                            row.intercepts[row.interceptN++] = point.p.x;
                         }
                     }
                 }
@@ -501,10 +501,10 @@ namespace qc::image::sdf
         FAIL_IF(!outline.isValid());
 
         // Count total segments
-        u64 segmentCount{0u};
+        u64 segmentN{0u};
         for (const Contour & contour : outline.contours)
         {
-            segmentCount += contour.segments.size();
+            segmentN += contour.segments.size();
         }
 
         // Reset buffers
@@ -512,8 +512,8 @@ namespace qc::image::sdf
             distances.resize(u64(size * size));
             for (float & distance : distances) distance = infinity<float>;
 
-            const u64 maxInterceptCount{segmentCount * 2u};
-            rowIntercepts.resize(u64(size) * maxInterceptCount);
+            const u64 maxInterceptN{segmentN * 2u};
+            rowIntercepts.resize(u64(size) * maxInterceptN);
 
             rows.resize(u64(size));
             float * firstDistance{distances.data() + size * size - size};
@@ -521,11 +521,11 @@ namespace qc::image::sdf
             for (_Row & row : rows)
             {
                 row.distances = firstDistance;
-                row.interceptCount = 0u;
+                row.interceptN = 0u;
                 row.intercepts = firstIntercept;
 
                 firstDistance -= size;
-                firstIntercept += maxInterceptCount;
+                firstIntercept += maxInterceptN;
             }
         }
 
@@ -557,17 +557,17 @@ namespace qc::image::sdf
 
         for (_Row & row : rows)
         {
-            std::sort(row.intercepts, row.intercepts + row.interceptCount);
+            std::sort(row.intercepts, row.intercepts + row.interceptN);
 
             // There should always be an even number of intercepts
-            // TODO: Make interceptCount unsigned
-            if (row.interceptCount % 2)
+            // TODO: Make interceptN unsigned
+            if (row.interceptN % 2)
             {
                 assert(false);
-                --row.interceptCount;
+                --row.interceptN;
             }
 
-            for (int i{1}; i < row.interceptCount; i += 2)
+            for (int i{1}; i < row.interceptN; i += 2)
             {
                 fspan1 xSpan{row.intercepts[i - 1], row.intercepts[i]};
                 clampify(xSpan, 0.0f, fSize);
