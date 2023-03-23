@@ -29,7 +29,7 @@ namespace qc::image::sdf
         struct _Row
         {
             float * distances;
-            int interceptN;
+            u32 interceptN;
             float * intercepts;
         };
 
@@ -560,16 +560,21 @@ namespace qc::image::sdf
             std::sort(row.intercepts, row.intercepts + row.interceptN);
 
             // There should always be an even number of intercepts
-            // TODO: Make interceptN unsigned
-            if (row.interceptN % 2)
+            if (row.interceptN % 2u)
             {
-                assert(false);
-                --row.interceptN;
+                if constexpr (debug)
+                {
+                    ABORT();
+                }
+                else
+                {
+                    --row.interceptN;
+                }
             }
 
-            for (int i{1}; i < row.interceptN; i += 2)
+            for (u32 i{1u}; i < row.interceptN; i += 2u)
             {
-                fspan1 xSpan{row.intercepts[i - 1], row.intercepts[i]};
+                fspan1 xSpan{row.intercepts[i - 1u], row.intercepts[i]};
                 clampify(xSpan, 0.0f, fSize);
 
                 const ispan1 xSpanPx{ceil<int>(xSpan.min - 0.5f), floor<int>(xSpan.max - 0.5f)};
