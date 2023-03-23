@@ -165,9 +165,9 @@ namespace qc::image::sdf
             return segment.isCurve ? _distance2To(segment.curve, segmentExt.curve, p) : _distance2To(segment.line, segmentExt.line, p);
         }
 
-        void _updateDistances(const Segment & segment, const _SegmentExt & segmentExt, const int size, const float halfRange, _Row * const rows, const fspan2 bounds)
+        void _updateDistances(const Segment & segment, const _SegmentExt & segmentExt, const u32 size, const float halfRange, _Row * const rows, const fspan2 bounds)
         {
-            const ispan2 pixelBounds{max(floor<int>(bounds.min - halfRange), 0), min(ceil<int>(bounds.max + halfRange), size)};
+            const ispan2 pixelBounds{max(floor<s32>(bounds.min - halfRange), 0), min(ceil<s32>(bounds.max + halfRange), s32(size))};
 
             for (ivec2 p{pixelBounds.min}; p.y < pixelBounds.max.y; ++p.y)
             {
@@ -192,7 +192,7 @@ namespace qc::image::sdf
             const float slope{delta.x / delta.y};
             const float offset{line.p1.x - slope * line.p1.y};
 
-            for (int yPx{interceptRows.min}; yPx <= interceptRows.max; ++yPx)
+            for (s32 yPx{interceptRows.min}; yPx <= interceptRows.max; ++yPx)
             {
                 _Row & row{rows[yPx]};
 
@@ -210,7 +210,7 @@ namespace qc::image::sdf
 
         void _updateIntercepts(const Curve & curve, const _CurveExt & curveExt, _Row * const rows, const ispan1 & interceptRows)
         {
-            for (int yPx{interceptRows.min}; yPx <= interceptRows.max; ++yPx)
+            for (s32 yPx{interceptRows.min}; yPx <= interceptRows.max; ++yPx)
             {
                 _Row & row{rows[yPx]};
 
@@ -269,7 +269,7 @@ namespace qc::image::sdf
             }
         }
 
-        void _process(const Segment & segment, const int size, const float halfRange, _Row * const rows)
+        void _process(const Segment & segment, const u32 size, const float halfRange, _Row * const rows)
         {
             const _SegmentExt segmentExt{_calcExtra(segment)};
 
@@ -277,17 +277,17 @@ namespace qc::image::sdf
 
             _updateDistances(segment, segmentExt, size, halfRange, rows, bounds);
 
-            ispan1 interceptRows{ceil<int>(bounds.min.y - 0.5f), floor<int>(bounds.max.y - 0.5f)};
+            ispan1 interceptRows{ceil<s32>(bounds.min.y - 0.5f), floor<s32>(bounds.max.y - 0.5f)};
             if (float(interceptRows.min) + 0.5f == bounds.min.y) ++interceptRows.min;
             if (float(interceptRows.max) + 0.5f == bounds.max.y) --interceptRows.max;
-            clampify(interceptRows, 0, size - 1);
+            clampify(interceptRows, 0, s32(size) - 1);
             if (interceptRows.max >= interceptRows.min)
             {
                 _updateIntercepts(segment, segmentExt, rows, interceptRows);
             }
         }
 
-        void _updatePointIntercepts(const Contour & contour, _Row * const rows, const int size)
+        void _updatePointIntercepts(const Contour & contour, _Row * const rows, const u32 size)
         {
             struct Point { fvec2 p; float prevY, nextY; };
             static thread_local List<Point> points;
@@ -336,8 +336,8 @@ namespace qc::image::sdf
             {
                 if (point.p.y > 0.0f)
                 {
-                    const auto [f, i]{fract_i<int>(point.p.y)};
-                    if (f == 0.5f && i < size)
+                    const auto [f, i]{fract_i<s32>(point.p.y)};
+                    if (f == 0.5f && i < s32(size))
                     {
                         // Only an intersection if the adjacent points are on opposite sides of the scanline
                         if ((point.prevY < point.p.y && point.nextY > point.p.y) || (point.prevY > point.p.y && point.nextY < point.p.y))
@@ -492,7 +492,7 @@ namespace qc::image::sdf
         return true;
     }
 
-    GrayImage generate(const Outline & outline, const int size, const float range)
+    GrayImage generate(const Outline & outline, const u32 size, const float range)
     {
         static thread_local List<float> distances{};
         static thread_local List<float> rowIntercepts{};
@@ -553,8 +553,6 @@ namespace qc::image::sdf
 
         // Sort row intersections and invert internal distances
 
-        const float fSize{float(size)};
-
         for (_Row & row : rows)
         {
             std::sort(row.intercepts, row.intercepts + row.interceptN);
@@ -574,12 +572,10 @@ namespace qc::image::sdf
 
             for (u32 i{1u}; i < row.interceptN; i += 2u)
             {
-                fspan1 xSpan{row.intercepts[i - 1u], row.intercepts[i]};
-                clampify(xSpan, 0.0f, fSize);
-
-                const ispan1 xSpanPx{ceil<int>(xSpan.min - 0.5f), floor<int>(xSpan.max - 0.5f)};
-
-                for (int xPx{xSpanPx.min}; xPx <= xSpanPx.max; ++xPx)
+                const fspan1 xSpan{row.intercepts[i - 1u], row.intercepts[i]};
+                ispan1 xSpanPx{ceil<s32>(xSpan.min - 0.5f), floor<s32>(xSpan.max - 0.5f)};
+                clampify(xSpanPx, 0, s32(size) - 1);
+                for (s32 xPx{xSpanPx.min}; xPx <= xSpanPx.max; ++xPx)
                 {
                     float & distance{row.distances[xPx]};
                     distance = -distance;

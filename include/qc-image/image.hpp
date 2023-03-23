@@ -20,13 +20,13 @@ namespace qc::image
 
       public:
 
-        static constexpr int components{sizeof(P)};
+        static constexpr u32 components{sizeof(P)};
 
         Image() = default;
-        explicit Image(ivec2 size);
-        Image(ivec2 size, P * pixels);
-        Image(int width, int height);
-        Image(int width, int height, P * pixels);
+        explicit Image(uivec2 size);
+        Image(uivec2 size, P * pixels);
+        Image(u32 width, u32 height);
+        Image(u32 width, u32 height, P * pixels);
 
         Image(const Image &) = delete;
         Image(Image && other);
@@ -40,33 +40,31 @@ namespace qc::image
 
         nodisc ImageView<P> view();
         nodisc ImageView<const P> view() const;
-        nodisc ImageView<P> view(const ispan2 & span);
-        nodisc ImageView<const P> view(const ispan2 & span) const;
-        nodisc ImageView<P> view(ivec2 position, ivec2 size);
-        nodisc ImageView<const P> view(ivec2 position, ivec2 size) const;
+        nodisc ImageView<P> view(ivec2 position, uivec2 size);
+        nodisc ImageView<const P> view(ivec2 position, uivec2 size) const;
 
-        nodisc ivec2 size() const { return _size; }
+        nodisc uivec2 size() const { return _size; }
 
-        nodisc int width() const { return _size.x; };
+        nodisc u32 width() const { return _size.x; };
 
-        nodisc int height() const { return _size.y; };
+        nodisc u32 height() const { return _size.y; };
 
         nodisc P * pixels() { return _pixels; };
         nodisc const P * pixels() const { return _pixels; };
 
-        nodisc P * row(int y);
-        nodisc const P * row(int y) const;
+        nodisc P * row(s32 y);
+        nodisc const P * row(s32 y) const;
 
         nodisc P & at(ivec2 p);
         nodisc const P & at(ivec2 p) const;
-        nodisc P & at(int x, int y);
-        nodisc const P & at(int x, int y) const;
+        nodisc P & at(s32 x, s32 y);
+        nodisc const P & at(s32 x, s32 y) const;
 
         P * release();
 
       private:
 
-        ivec2 _size{};
+        uivec2 _size{};
         P * _pixels{};
     };
 
@@ -87,6 +85,7 @@ namespace qc::image
       public:
 
         ImageView() = default;
+        ImageView(_Image & image, ivec2 pos, uivec2 size);
 
         ImageView(const ImageView &) = default;
         ImageView(const ImageView<std::remove_const_t<P>> & other) requires std::is_const_v<P>;
@@ -94,35 +93,32 @@ namespace qc::image
         ImageView & operator=(const ImageView &) = default;
         ImageView & operator=(const ImageView<std::remove_const_t<P>> & other) requires std::is_const_v<P>;
 
-        nodisc ImageView view(const ispan2 & span) const;
-        nodisc ImageView view(ivec2 position, ivec2 size) const;
+        nodisc ImageView view(ivec2 position, uivec2 size) const;
 
         nodisc _Image * image() const { return _image; }
 
-        nodisc const ispan2 & span() const { return _span; }
+        nodisc ivec2 pos() const { return _pos; }
 
-        nodisc ivec2 pos() const { return _span.min; }
+        nodisc uivec2 size() const { return _size; }
 
-        nodisc ivec2 size() const { return _size; }
+        nodisc u32 width() const { return _size.x; }
 
-        nodisc int width() const { return _size.x; }
+        nodisc u32 height() const { return _size.y; }
 
-        nodisc int height() const { return _size.y; }
-
-        nodisc P * row(int y) const;
+        nodisc P * row(s32 y) const;
 
         nodisc P & at(ivec2 p) const;
-        nodisc P & at(int x, int y) const;
+        nodisc P & at(s32 x, s32 y) const;
 
         void fill(const P & color) const requires (!std::is_const_v<P>);
 
-        void outline(int thickness, const P & color) const requires (!std::is_const_v<P>);
+        void outline(u32 thickness, const P & color) const requires (!std::is_const_v<P>);
 
-        void horizontalLine(ivec2 pos, int length, const P & color) const requires (!std::is_const_v<P>);
+        void horizontalLine(ivec2 pos, u32 length, const P & color) const requires (!std::is_const_v<P>);
 
-        void verticalLine(ivec2 pos, int length, const P & color) const requires (!std::is_const_v<P>);
+        void verticalLine(ivec2 pos, u32 length, const P & color) const requires (!std::is_const_v<P>);
 
-        void checkerboard(int squareSize, const P & backColor, const P & foreColor) const requires (!std::is_const_v<P>);
+        void checkerboard(u32 squareSize, const P & backColor, const P & foreColor) const requires (!std::is_const_v<P>);
 
         void copy(const ImageView<const P> & src) const requires (!std::is_const_v<P>);
         void copy(const _Image & src) const requires (!std::is_const_v<P>);
@@ -130,10 +126,8 @@ namespace qc::image
       private:
 
         _Image * _image{};
-        ispan2 _span{};
-        ivec2 _size{};
-
-        ImageView(_Image & image, const ispan2 & span);
+        ivec2 _pos{};
+        uivec2 _size{};
     };
 
     using GrayImageView = ImageView<u8>;
@@ -158,24 +152,24 @@ namespace qc::image
 namespace qc::image
 {
     template <typename P>
-    inline Image<P>::Image(const ivec2 size) :
-        Image(size.x, size.y)
+    inline Image<P>::Image(const uivec2 size) :
+        Image{size.x, size.y}
     {}
 
     template <typename P>
-    inline Image<P>::Image(const ivec2 size, P * const pixels) :
-        Image(size.x, size.y, pixels)
-    {}
-
-    template <typename P>
-    inline Image<P>::Image(const int width, const int height) :
-        Image(width, height, static_cast<P *>(::operator new(u64(width * height) * sizeof(P))))
-    {}
-
-    template <typename P>
-    inline Image<P>::Image(const int width, const int height, P * const pixels) :
-        _size{width, height},
+    inline Image<P>::Image(const uivec2 size, P * const pixels) :
+        _size{size},
         _pixels{pixels}
+    {}
+
+    template <typename P>
+    inline Image<P>::Image(const u32 width, const u32 height) :
+        Image{width, height, static_cast<P *>(::operator new(width * height * sizeof(P)))}
+    {}
+
+    template <typename P>
+    inline Image<P>::Image(const u32 width, const u32 height, P * const pixels) :
+        Image{uivec2{width, height}, pixels}
     {}
 
     template <typename P>
@@ -206,53 +200,41 @@ namespace qc::image
     template <typename P>
     inline ImageView<P> Image<P>::view()
     {
-        return ImageView<P>{*this, ispan2{0, _size}};
+        return ImageView<P>{*this, ivec2{}, _size};
     }
 
     template <typename P>
     inline ImageView<const P> Image<P>::view() const
     {
-        return ImageView<const P>{*this, ispan2{0, _size}};
+        return ImageView<const P>{*this, ivec2{}, _size};
     }
 
     template <typename P>
-    inline ImageView<P> Image<P>::view(const ispan2 & span)
+    inline ImageView<P> Image<P>::view(const ivec2 pos, const uivec2 size)
     {
-        return ImageView<P>{*this, clamp(span, ivec2{0}, _size)};
+        return ImageView<P>{*this, pos, size};
     }
 
     template <typename P>
-    inline ImageView<const P> Image<P>::view(const ispan2 & span) const
+    inline ImageView<const P> Image<P>::view(const ivec2 pos, const uivec2 size) const
     {
-        return ImageView<const P>{*this, clamp(span, ivec2{0}, _size)};
+        return ImageView<const P>{*this, pos, size};
     }
 
     template <typename P>
-    inline ImageView<P> Image<P>::view(const ivec2 pos, const ivec2 size)
+    inline P * Image<P>::row(const s32 y)
     {
-        return ImageView<P>{*this, ispan2{pos, pos + size}};
+        assert(y >= 0 && u32(y) < _size.y);
+
+        return _pixels + (_size.y - 1u - u32(y)) * _size.x;
     }
 
     template <typename P>
-    inline ImageView<const P> Image<P>::view(const ivec2 pos, const ivec2 size) const
+    inline const P * Image<P>::row(const s32 y) const
     {
-        return ImageView<const P>{*this, ispan2{pos, pos + size}};
-    }
+        assert(y >= 0 && u32(y) < _size.y);
 
-    template <typename P>
-    inline P * Image<P>::row(const int y)
-    {
-        assert(y >= 0 && y < _size.y);
-
-        return _pixels + (_size.y - 1 - y) * _size.x;
-    }
-
-    template <typename P>
-    inline const P * Image<P>::row(const int y) const
-    {
-        assert(y >= 0 && y < _size.y);
-
-        return _pixels + (_size.y - 1 - y) * _size.x;
+        return _pixels + (_size.y - 1u - u32(y)) * _size.x;
     }
 
     template <typename P>
@@ -268,17 +250,17 @@ namespace qc::image
     }
 
     template <typename P>
-    inline P & Image<P>::at(const int x, const int y)
+    inline P & Image<P>::at(const s32 x, const s32 y)
     {
-        assert(x >= 0 && x < _size.x);
+        assert(x >= 0 && u32(x) < _size.x);
 
         return row(y)[x];
     }
 
     template <typename P>
-    inline const P & Image<P>::at(const int x, const int y) const
+    inline const P & Image<P>::at(const s32 x, const s32 y) const
     {
-        assert(x >= 0 && x < _size.x);
+        assert(x >= 0 && u32(x) < _size.x);
 
         return row(y)[x];
     }
@@ -295,28 +277,23 @@ namespace qc::image
     }
 
     template <typename P>
-    inline ImageView<P>::ImageView(_Image & image, const ispan2 & span) :
+    inline ImageView<P>::ImageView(_Image & image, const ivec2 pos, const uivec2 size) :
         _image{&image},
-        _span{span},
-        _size{_span.size()}
+        _pos{pos},
+        _size{size}
     {}
 
     template <typename P>
-    inline ImageView<P> ImageView<P>::view(const ispan2 & span) const
+    inline ImageView<P> ImageView<P>::view(const ivec2 pos, const uivec2 size) const
     {
-        return ImageView{*_image, span & _span};
+        const ispan2 span{ispan2{_pos, _pos + ivec2(_size)} & ispan2{pos, pos + ivec2(size)}};
+        return ImageView{*_image, span.min, uivec2(span.size())};
     }
 
     template <typename P>
-    inline ImageView<P> ImageView<P>::view(const ivec2 pos, const ivec2 size) const
+    inline P * ImageView<P>::row(const s32 y) const
     {
-        return view(ispan2{pos, pos + size});
-    }
-
-    template <typename P>
-    inline P * ImageView<P>::row(const int y) const
-    {
-        return _image->row(_span.min.y + y) + _span.min.x;
+        return _image->row(_pos.y + y) + _pos.x;
     }
 
     template <typename P>
@@ -326,9 +303,9 @@ namespace qc::image
     }
 
     template <typename P>
-    inline P & ImageView<P>::at(const int x, const int y) const
+    inline P & ImageView<P>::at(const s32 x, const s32 y) const
     {
-        assert(x >= 0 && x < _size.x);
+        assert(x >= 0 && u32(x) < _size.x);
 
         return row(y)[x];
     }

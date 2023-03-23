@@ -67,7 +67,7 @@ namespace qc::image::sdf
     /// Range is the total width of the distance gradient from 0.0 to 1.0
     /// @return generated image, or empty image if `outline.isValid()` is false
     ///
-    GrayImage generate(const Outline & outline, const int size, const float range);
+    GrayImage generate(const Outline & outline, const u32 size, const float range);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

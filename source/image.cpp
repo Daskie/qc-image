@@ -37,8 +37,6 @@ GCC_DIAGNOSTIC_IGNORED("-Wuseless-cast")
 MSVC_WARNING_POP
 GCC_DIAGNOSTIC_POP
 
-#include <qc-core/span-ext.hpp>
-
 namespace qc::image
 {
     template <typename P>
@@ -57,45 +55,48 @@ namespace qc::image
     template <typename P>
     void ImageView<P>::fill(const P & color) const requires (!std::is_const_v<P>)
     {
-        for (int y{0}; y < _size.y; ++y)
+        for (u32 y{0u}; y < _size.y; ++y)
         {
-            std::fill_n(row(y), _size.x, color);
+            std::fill_n(row(s32(y)), _size.x, color);
         }
     }
 
     template <typename P>
-    void ImageView<P>::outline(const int thickness, const P & color) const requires (!std::is_const_v<P>)
+    void ImageView<P>::outline(const u32 thickness, const P & color) const requires (!std::is_const_v<P>)
     {
         if (thickness)
         {
             horizontalLine({0, 0}, _size.x, color);
-            horizontalLine({0, _size.y - 1}, _size.x, color);
-            verticalLine({0, 1}, _size.y - 2, color);
-            verticalLine({_size.x - 1, 1}, _size.y - 2, color);
+            if (_size.y > 1)
+            {
+                horizontalLine({0, s32(_size.y - 1u)}, _size.x, color);
+                verticalLine({0, 1}, _size.y - 2u, color);
+                verticalLine({s32(_size.x - 1u), 1}, _size.y - 2u, color);
+            }
 
-            view(ivec2{1}, _size - 2).outline(thickness - 1, color);
+            view(ivec2{1}, _size - 2u).outline(thickness - 1u, color);
         }
     }
 
     template <typename P>
-    void ImageView<P>::horizontalLine(const ivec2 pos, const int length, const P & color) const requires (!std::is_const_v<P>)
+    void ImageView<P>::horizontalLine(const ivec2 pos, const u32 length, const P & color) const requires (!std::is_const_v<P>)
     {
-        if (length > 0 && pos.y >= 0 && pos.y < _size.y)
+        if (pos.y >= 0 && u32(pos.y) < _size.y)
         {
+            const ispan1 span{ispan1{pos.x, pos.x + s32(length)} & ispan1{_pos.x, _pos.x + s32(_size.x)}};
             P * const r{row(pos.y)};
-            std::fill(r + max(pos.x, 0), r + min(pos.x + length, _size.x), color);
+            std::fill(r + span.min, r + span.max, color);
         }
     }
 
     template <typename P>
-    void ImageView<P>::verticalLine(const ivec2 pos, const int length, const P & color) const requires (!std::is_const_v<P>)
+    void ImageView<P>::verticalLine(const ivec2 pos, const u32 length, const P & color) const requires (!std::is_const_v<P>)
     {
-        if (length > 0 && pos.x >= 0 && pos.x < _size.x)
+        if (pos.x >= 0 && u32(pos.x) < _size.x)
         {
-            const int startY{max(pos.y, 0)};
-            const int endY{min(pos.y + length, _size.y)};
-            P * p{&at(pos.x, startY)};
-            for (int y{startY}; y < endY; ++y, p -= _image->_size.x)
+            const ispan1 span{ispan1{pos.y, pos.y + s32(length)} & ispan1{_pos.y, _pos.y + s32(_size.y)}};
+            P * p{&at(pos.x, span.min)};
+            for (s32 y{span.min}; y < span.max; ++y, p -= _image->_size.x)
             {
                 *p = color;
             }
@@ -103,14 +104,14 @@ namespace qc::image
     }
 
     template <typename P>
-    void ImageView<P>::checkerboard(const int squareSize, const P & backColor, const P & foreColor) const requires (!std::is_const_v<P>)
+    void ImageView<P>::checkerboard(const u32 squareSize, const P & backColor, const P & foreColor) const requires (!std::is_const_v<P>)
     {
         // TODO: Make more efficient
-        for (ivec2 p{0, 0}; p.y < _size.y; ++p.y)
+        for (uivec2 p{0u}; p.y < _size.y; ++p.y)
         {
-            for (p.x = 0; p.x < _size.x; ++p.x)
+            for (p.x = 0u; p.x < _size.x; ++p.x)
             {
-                at(p) = (p.x / squareSize + p.y / squareSize) % 2 ? foreColor : backColor;
+                at(ivec2(p)) = (p.x / squareSize + p.y / squareSize) % 2u ? foreColor : backColor;
             }
         }
     }
@@ -118,13 +119,12 @@ namespace qc::image
     template <typename P>
     void ImageView<P>::copy(const ImageView<const P> & src) const requires (!std::is_const_v<P>)
     {
-        assert(_size == src._size);
-
+        const u32 copyWidth{min(_size.x, src._size.x)};
         const P * srcR{src.row(0)};
         P * dstR{row(0)};
-        for (int y{0}; y < _size.y; ++y, srcR -= src._image->_size.x, dstR -= _image->_size.x)
+        for (u32 y{0u}; y < _size.y; ++y, srcR -= src._image->_size.x, dstR -= _image->_size.x)
         {
-            std::copy_n(srcR, _size.x, dstR);
+            std::copy_n(srcR, copyWidth, dstR);
         }
     }
 
@@ -141,15 +141,16 @@ namespace qc::image
 
         FAIL_IF(!fileData);
 
-        int x, y, channels;
-        u8 * const data{stbi_load_from_memory(fileData->data(), int(fileData->size()), &x, &y, &channels, allowComponentPadding ? Image<P>::components : 0)};
+        int width, height, channels;
+        u8 * const data{stbi_load_from_memory(fileData->data(), int(fileData->size()), &width, &height, &channels, allowComponentPadding ? int(Image<P>::components) : 0)};
         ScopeGuard memGuard{[data]() { STBI_FREE(data); }};
 
         FAIL_IF(!data);
-        FAIL_IF(channels > Image<P>::components || (!allowComponentPadding && channels < Image<P>::components));
+        FAIL_IF(width <= 0 || height <= 0);
+        FAIL_IF(u32(channels) > Image<P>::components || (!allowComponentPadding && u32(channels) < Image<P>::components));
 
         memGuard.release();
-        return Image<P>{ivec2{x, y}, std::bit_cast<P *>(data)};
+        return Image<P>{uivec2{u32(width), u32(height)}, std::bit_cast<P *>(data)};
     }
 
     Result<GrayImage> readGrayImage(const std::filesystem::path & file)
@@ -179,7 +180,7 @@ namespace qc::image
         if (extension == ".png")
         {
             int dataLength{};
-            u8 * const data{stbi_write_png_to_mem(std::bit_cast<const u8*>(image.pixels()), image.size().x * int(sizeof(P)), image.size().x, image.size().y, image.components, &dataLength)};
+            u8 * const data{stbi_write_png_to_mem(std::bit_cast<const u8*>(image.pixels()), int(image.width() * sizeof(P)), int(image.width()), int(image.height()), int(image.components), &dataLength)};
             const qc::ScopeGuard dataGuard{[&]() { STBI_FREE(data); }};
 
             FAIL_IF(dataLength <= 0 || !data);
