@@ -74,7 +74,7 @@ namespace qc::image
                 verticalLine({s32(_size.x - 1u), 1}, _size.y - 2u, color);
             }
 
-            if (min(_size) > 2u)
+            if (thickness > 1u && min(_size) > 2u)
             {
                 view(ivec2{1}, _size - 2u).outline(thickness - 1u, color);
             }
@@ -86,7 +86,7 @@ namespace qc::image
     {
         if (pos.y >= 0 && u32(pos.y) < _size.y)
         {
-            const ispan1 span{ispan1{pos.x, pos.x + s32(length)} & ispan1{_pos.x, _pos.x + s32(_size.x)}};
+            const ispan1 span{ispan1{pos.x, pos.x + s32(length)} & ispan1{0, s32(_size.x)}};
             P * const r{row(pos.y)};
             std::fill(r + span.min, r + span.max, color);
         }
@@ -97,7 +97,7 @@ namespace qc::image
     {
         if (pos.x >= 0 && u32(pos.x) < _size.x)
         {
-            const ispan1 span{ispan1{pos.y, pos.y + s32(length)} & ispan1{_pos.y, _pos.y + s32(_size.y)}};
+            const ispan1 span{ispan1{pos.y, pos.y + s32(length)} & ispan1{0, s32(_size.y)}};
             P * p{&at(pos.x, span.min)};
             for (s32 y{span.min}; y < span.max; ++y, p -= _image->_size.x)
             {
