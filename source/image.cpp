@@ -74,7 +74,10 @@ namespace qc::image
                 verticalLine({s32(_size.x - 1u), 1}, _size.y - 2u, color);
             }
 
-            view(ivec2{1}, _size - 2u).outline(thickness - 1u, color);
+            if (min(_size) > 2u)
+            {
+                view(ivec2{1}, _size - 2u).outline(thickness - 1u, color);
+            }
         }
     }
 
