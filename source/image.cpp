@@ -48,8 +48,10 @@ namespace qc::image
     template <typename P>
     P * Image<P>::release()
     {
+        P * const pixels{_pixels};
         _size = {};
-        return std::exchange(_pixels, nullptr);
+        _pixels = nullptr;
+        return pixels;
     }
 
     template <typename P>

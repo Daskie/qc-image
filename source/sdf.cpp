@@ -294,9 +294,9 @@ namespace qc::image::sdf
 
             points.resize(contour.segments.size());
 
-            for (u64 i{0u}, endI{contour.segments.size()}; i < endI; ++i)
+            for (u32 i{0u}, endI{contour.segments.size()}; i < endI; ++i)
             {
-                u64 nextI{i + 1u};
+                u32 nextI{i + 1u};
                 if (nextI == endI) nextI = 0u;
 
                 const Segment & segment{contour.segments[i]};
@@ -318,7 +318,7 @@ namespace qc::image::sdf
             }
 
             // Remove consecutive points on same y value
-            for (u64 i{0u}; i < points.size(); ++i)
+            for (u32 i{0u}; i < points.size(); ++i)
             {
                 Point & point{points[i]};
                 if (point.p.y == point.prevY)
@@ -383,7 +383,7 @@ namespace qc::image::sdf
         }
 
         // Each segment must connect to the next
-        for (u64 i{1u}; i < segments.size(); ++i)
+        for (u32 i{1u}; i < segments.size(); ++i)
         {
             const Segment & segment1{segments[i - 1u]};
             const Segment & segment2{segments[i]};
@@ -501,7 +501,7 @@ namespace qc::image::sdf
         FAIL_IF(!outline.isValid());
 
         // Count total segments
-        u64 segmentN{0u};
+        u32 segmentN{0u};
         for (const Contour & contour : outline.contours)
         {
             segmentN += contour.segments.size();
@@ -509,13 +509,13 @@ namespace qc::image::sdf
 
         // Reset buffers
         {
-            distances.resize(u64(size * size));
+            distances.resize(size * size);
             for (float & distance : distances) distance = infinity<float>;
 
-            const u64 maxInterceptN{segmentN * 2u};
-            rowIntercepts.resize(u64(size) * maxInterceptN);
+            const u32 maxInterceptN{segmentN * 2u};
+            rowIntercepts.resize(size * maxInterceptN);
 
-            rows.resize(u64(size));
+            rows.resize(size);
             float * firstDistance{distances.data() + size * size - size};
             float * firstIntercept{rowIntercepts.data()};
             for (_Row & row : rows)
