@@ -10,23 +10,32 @@
 
 namespace qc::image
 {
-    template <typename P> class ImageView;
+    template <Numeric T, u32 n> using Pixel = std::conditional_t<n == 1u, T, vec<T, n>>;
 
-    template <typename P>
+    template <Numeric T, u32 n, bool constant> class ImageView;
+
+    template <Numeric T, u32 n>
     class Image
     {
-        friend class ImageView<P>;
-        friend class ImageView<const P>;
-
       public:
 
-        static constexpr u32 components{sizeof(P)};
+        static_assert(n >= 1u && n <= 4u);
+
+        friend class ImageView<T, n, false>;
+        friend class ImageView<T, n, true>;
+
+        using ComponentT = T;
+        using Pixel = Pixel<T, n>;
+        using View = ImageView<T, n, false>;
+        using CView = ImageView<T, n, true>;
+
+        static constexpr u32 componentN{n};
 
         Image() = default;
         explicit Image(uivec2 size);
-        Image(uivec2 size, P * pixels);
+        Image(uivec2 size, Pixel * pixels);
         Image(u32 width, u32 height);
-        Image(u32 width, u32 height, P * pixels);
+        Image(u32 width, u32 height, Pixel * pixels);
 
         Image(const Image &) = delete;
         Image(Image && other);
@@ -36,12 +45,12 @@ namespace qc::image
 
         ~Image();
 
-        void fill(const P & color);
+        void fill(const Pixel & color);
 
-        nodisc ImageView<P> view();
-        nodisc ImageView<const P> view() const;
-        nodisc ImageView<P> view(ivec2 position, uivec2 size);
-        nodisc ImageView<const P> view(ivec2 position, uivec2 size) const;
+        nodisc View view() { return View{*this, ivec2{}, _size}; }
+        nodisc CView view() const { return CView{*this, ivec2{}, _size}; }
+        nodisc View view(const ivec2 pos, const uivec2 size) { return View{*this, pos, size}; }
+        nodisc CView view(const ivec2 pos, const uivec2 size) const { return CView{*this, pos, size}; }
 
         nodisc uivec2 size() const { return _size; }
 
@@ -49,53 +58,55 @@ namespace qc::image
 
         nodisc u32 height() const { return _size.y; };
 
-        nodisc P * pixels() { return _pixels; };
-        nodisc const P * pixels() const { return _pixels; };
+        nodisc Pixel * pixels() { return _pixels; };
+        nodisc const Pixel * pixels() const { return _pixels; };
 
-        nodisc P * row(s32 y);
-        nodisc const P * row(s32 y) const;
+        nodisc Pixel * row(s32 y);
+        nodisc const Pixel * row(s32 y) const;
 
-        nodisc P & at(ivec2 p);
-        nodisc const P & at(ivec2 p) const;
-        nodisc P & at(s32 x, s32 y);
-        nodisc const P & at(s32 x, s32 y) const;
+        nodisc Pixel & at(ivec2 p);
+        nodisc const Pixel & at(ivec2 p) const;
+        nodisc Pixel & at(s32 x, s32 y);
+        nodisc const Pixel & at(s32 x, s32 y) const;
 
-        P * release();
+        Pixel * release();
 
       private:
 
         uivec2 _size{};
-        P * _pixels{};
+        Pixel * _pixels{};
     };
 
-    using GrayImage = Image<u8>;
-    using GrayAlphaImage = Image<ucvec2>;
-    using RgbImage = Image<ucvec3>;
-    using RgbaImage = Image<ucvec4>;
+    using GrayImage = Image<u8, 1u>;
+    using GrayAlphaImage = Image<u8, 2u>;
+    using RgbImage = Image<u8, 3u>;
+    using RgbaImage = Image<u8, 4u>;
 
-    template <typename P>
+    template <Numeric T, u32 n, bool constant>
     class ImageView
     {
-        using _ImageP = std::remove_const_t<P>;
-        using _Image = std::conditional_t<std::is_const_v<P>, const Image<_ImageP>, Image<_ImageP>>;
-        friend class Image<_ImageP>;
-        friend class ImageView<std::remove_const_t<P>>;
-        friend class ImageView<std::add_const_t<P>>;
+      public:
+
+        friend class Image<T, n>;
+        friend class ImageView<T, n, !constant>;
+
+        using Image = ConstIf<Image<T, n>, constant>;
+        using Pixel = ConstIf<Pixel<T, n>, constant>;
 
       public:
 
         ImageView() = default;
-        ImageView(_Image & image, ivec2 pos, uivec2 size);
+        ImageView(Image & image, ivec2 pos, uivec2 size);
 
         ImageView(const ImageView &) = default;
-        ImageView(const ImageView<std::remove_const_t<P>> & other) requires std::is_const_v<P>;
+        ImageView(const ImageView<T, n, false> & other) requires constant;
 
         ImageView & operator=(const ImageView &) = default;
-        ImageView & operator=(const ImageView<std::remove_const_t<P>> & other) requires std::is_const_v<P>;
+        ImageView & operator=(const ImageView<T, n, false> & other) requires constant;
 
         nodisc ImageView view(ivec2 position, uivec2 size) const;
 
-        nodisc _Image * image() const { return _image; }
+        nodisc Image * image() const { return _image; }
 
         nodisc ivec2 pos() const { return _pos; }
 
@@ -105,75 +116,70 @@ namespace qc::image
 
         nodisc u32 height() const { return _size.y; }
 
-        nodisc P * row(s32 y) const;
+        nodisc Pixel * row(s32 y) const;
 
-        nodisc P & at(ivec2 p) const;
-        nodisc P & at(s32 x, s32 y) const;
+        nodisc Pixel & at(ivec2 p) const;
+        nodisc Pixel & at(s32 x, s32 y) const;
 
-        void fill(const P & color) const requires (!std::is_const_v<P>);
+        void fill(const Pixel & color) const requires (!constant);
 
-        void outline(u32 thickness, const P & color) const requires (!std::is_const_v<P>);
+        void outline(u32 thickness, const Pixel & color) const requires (!constant);
 
-        void horizontalLine(ivec2 pos, u32 length, const P & color) const requires (!std::is_const_v<P>);
+        void horizontalLine(ivec2 pos, u32 length, const Pixel & color) const requires (!constant);
 
-        void verticalLine(ivec2 pos, u32 length, const P & color) const requires (!std::is_const_v<P>);
+        void verticalLine(ivec2 pos, u32 length, const Pixel & color) const requires (!constant);
 
-        void checkerboard(u32 squareSize, const P & backColor, const P & foreColor) const requires (!std::is_const_v<P>);
+        void checkerboard(u32 squareSize, const Pixel & backColor, const Pixel & foreColor) const requires (!constant);
 
-        void copy(const ImageView<const P> & src) const requires (!std::is_const_v<P>);
-        void copy(const _Image & src) const requires (!std::is_const_v<P>);
+        void copy(const ImageView<T, n, true> & src) const requires (!constant);
+        void copy(const Image & src) const requires (!constant);
 
       private:
 
-        _Image * _image{};
+        Image * _image{};
         ivec2 _pos{};
         uivec2 _size{};
     };
 
-    using GrayImageView = ImageView<u8>;
-    using GrayAlphaImageView = ImageView<ucvec2>;
-    using RgbImageView = ImageView<ucvec3>;
-    using RgbaImageView = ImageView<ucvec4>;
-
     ///
     /// ...
     ///
-    template <typename P> nodisc Result<Image<P>> read(const std::filesystem::path & file, bool allowComponentPadding);
-    nodisc Result<GrayImage> readGrayImage(const std::filesystem::path & file);
-    nodisc Result<GrayAlphaImage> readGrayAlphaImage(const std::filesystem::path & file, bool allowComponentPadding);
-    nodisc Result<RgbImage> readRgbImage(const std::filesystem::path & file, bool allowComponentPadding);
-    nodisc Result<RgbaImage> readRgbaImage(const std::filesystem::path & file, bool allowComponentPadding);
+    template <Numeric T, u32 n> nodisc Result<Image<T, n>> read(const std::filesystem::path & file, bool allowComponentPadding);
+    nodisc Result<GrayImage> readGray(const std::filesystem::path & file);
+    nodisc Result<GrayAlphaImage> readGrayAlpha(const std::filesystem::path & file, bool allowComponentPadding);
+    nodisc Result<RgbImage> readRgb(const std::filesystem::path & file, bool allowComponentPadding);
+    nodisc Result<RgbaImage> readRgba(const std::filesystem::path & file, bool allowComponentPadding);
 
-    template <typename P> nodisc bool write(const Image<P> & image, const std::filesystem::path & file);
+    template <Numeric T, u32 n> nodisc bool write(const Image<T, n> & image, const std::filesystem::path & file);
 }
 
-// INLINE IMPLEMENTATION ///////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace qc::image
 {
-    template <typename P>
-    inline Image<P>::Image(const uivec2 size) :
+    template <Numeric T, u32 n>
+    inline Image<T, n>::Image(const uivec2 size) :
         Image{size.x, size.y}
     {}
 
-    template <typename P>
-    inline Image<P>::Image(const uivec2 size, P * const pixels) :
+    template <Numeric T, u32 n>
+    inline Image<T, n>::Image(const uivec2 size, Pixel * const pixels) :
         _size{size},
         _pixels{pixels}
     {}
 
-    template <typename P>
-    inline Image<P>::Image(const u32 width, const u32 height) :
-        Image{width, height, static_cast<P *>(::operator new(width * height * sizeof(P)))}
+    template <Numeric T, u32 n>
+    inline Image<T, n>::Image(const u32 width, const u32 height) :
+        Image{width, height, static_cast<Pixel *>(::operator new(width * height * sizeof(Pixel)))}
     {}
 
-    template <typename P>
-    inline Image<P>::Image(const u32 width, const u32 height, P * const pixels) :
+    template <Numeric T, u32 n>
+    inline Image<T, n>::Image(const u32 width, const u32 height, Pixel * const pixels) :
         Image{uivec2{width, height}, pixels}
     {}
 
-    template <typename P>
-    inline Image<P>::Image(Image && other) :
+    template <Numeric T, u32 n>
+    inline Image<T, n>::Image(Image && other) :
         _size{other._size},
         _pixels{other._pixels}
     {
@@ -181,8 +187,8 @@ namespace qc::image
         other._pixels = nullptr;
     }
 
-    template <typename P>
-    inline Image<P> & Image<P>::operator=(Image && other)
+    template <Numeric T, u32 n>
+    inline Image<T, n> & Image<T, n>::operator=(Image && other)
     {
         _size = other._size;
         _pixels = other._pixels;
@@ -191,119 +197,95 @@ namespace qc::image
         return *this;
     }
 
-    template <typename P>
-    inline Image<P>::~Image()
+    template <Numeric T, u32 n>
+    inline Image<T, n>::~Image()
     {
         ::operator delete(_pixels);
     }
 
-    template <typename P>
-    inline ImageView<P> Image<P>::view()
-    {
-        return ImageView<P>{*this, ivec2{}, _size};
-    }
-
-    template <typename P>
-    inline ImageView<const P> Image<P>::view() const
-    {
-        return ImageView<const P>{*this, ivec2{}, _size};
-    }
-
-    template <typename P>
-    inline ImageView<P> Image<P>::view(const ivec2 pos, const uivec2 size)
-    {
-        return ImageView<P>{*this, pos, size};
-    }
-
-    template <typename P>
-    inline ImageView<const P> Image<P>::view(const ivec2 pos, const uivec2 size) const
-    {
-        return ImageView<const P>{*this, pos, size};
-    }
-
-    template <typename P>
-    inline P * Image<P>::row(const s32 y)
+    template <Numeric T, u32 n>
+    inline auto Image<T, n>::row(const s32 y) -> Pixel *
     {
         assert(y >= 0 && u32(y) < _size.y);
 
         return _pixels + (_size.y - 1u - u32(y)) * _size.x;
     }
 
-    template <typename P>
-    inline const P * Image<P>::row(const s32 y) const
+    template <Numeric T, u32 n>
+    inline auto Image<T, n>::row(const s32 y) const -> const Pixel *
     {
         assert(y >= 0 && u32(y) < _size.y);
 
         return _pixels + (_size.y - 1u - u32(y)) * _size.x;
     }
 
-    template <typename P>
-    inline P & Image<P>::at(const ivec2 p)
+    template <Numeric T, u32 n>
+    inline auto Image<T, n>::at(const ivec2 p) -> Pixel &
     {
         return at(p.x, p.y);
     }
 
-    template <typename P>
-    inline const P & Image<P>::at(const ivec2 p) const
+    template <Numeric T, u32 n>
+    inline auto Image<T, n>::at(const ivec2 p) const -> const Pixel &
     {
         return at(p.x, p.y);
     }
 
-    template <typename P>
-    inline P & Image<P>::at(const s32 x, const s32 y)
+    template <Numeric T, u32 n>
+    inline auto Image<T, n>::at(const s32 x, const s32 y) -> Pixel &
     {
         assert(x >= 0 && u32(x) < _size.x);
 
         return row(y)[x];
     }
 
-    template <typename P>
-    inline const P & Image<P>::at(const s32 x, const s32 y) const
+    template <Numeric T, u32 n>
+    inline auto Image<T, n>::at(const s32 x, const s32 y) const -> const Pixel &
     {
         assert(x >= 0 && u32(x) < _size.x);
 
         return row(y)[x];
     }
 
-    template <typename P>
-    inline ImageView<P>::ImageView(const ImageView<std::remove_const_t<P>> & other) requires std::is_const_v<P> :
+    template <Numeric T, u32 n, bool constant>
+    inline ImageView<T, n, constant>::ImageView(const ImageView<T, n, false> & other) requires constant :
         ImageView{reinterpret_cast<const ImageView &>(other)}
     {}
 
-    template <typename P>
-    inline ImageView<P> & ImageView<P>::operator=(const ImageView<std::remove_const_t<P>> & other) requires std::is_const_v<P>
+    template <Numeric T, u32 n, bool constant>
+    inline auto ImageView<T, n, constant>::operator=(const ImageView<T, n, false> & other) -> ImageView & requires constant
     {
         return *this = reinterpret_cast<const ImageView &>(other);
     }
 
-    template <typename P>
-    inline ImageView<P>::ImageView(_Image & image, const ivec2 pos, const uivec2 size) :
+    template <Numeric T, u32 n, bool constant>
+    inline ImageView<T, n, constant>::ImageView(Image & image, const ivec2 pos, const uivec2 size) :
         _image{&image},
         _pos{pos},
         _size{size}
     {}
 
-    template <typename P>
-    inline ImageView<P> ImageView<P>::view(const ivec2 pos, const uivec2 size) const
+    template <Numeric T, u32 n, bool constant>
+    inline auto ImageView<T, n, constant>::view(const ivec2 pos, const uivec2 size) const -> ImageView
     {
         const ispan2 span{ispan2{_pos, _pos + ivec2(_size)} & ispan2{pos, pos + ivec2(size)}};
         return ImageView{*_image, span.min, uivec2(span.size())};
     }
 
-    template <typename P>
-    inline P * ImageView<P>::row(const s32 y) const
+    template <Numeric T, u32 n, bool constant>
+    inline auto ImageView<T, n, constant>::row(const s32 y) const -> Pixel *
     {
         return _image->row(_pos.y + y) + _pos.x;
     }
 
-    template <typename P>
-    inline P & ImageView<P>::at(const ivec2 p) const
+    template <Numeric T, u32 n, bool constant>
+    inline auto ImageView<T, n, constant>::at(const ivec2 p) const -> Pixel &
     {
         return at(p.x, p.y);
     }
 
-    template <typename P>
-    inline P & ImageView<P>::at(const s32 x, const s32 y) const
+    template <Numeric T, u32 n, bool constant>
+    inline auto ImageView<T, n, constant>::at(const s32 x, const s32 y) const -> Pixel &
     {
         assert(x >= 0 && u32(x) < _size.x);
 

@@ -39,23 +39,23 @@ GCC_DIAGNOSTIC_POP
 
 namespace qc::image
 {
-    template <typename P>
-    void Image<P>::fill(const P & color)
+    template <Numeric T, u32 n>
+    void Image<T, n>::fill(const Pixel & color)
     {
         std::fill_n(_pixels, _size.x * _size.y, color);
     }
 
-    template <typename P>
-    P * Image<P>::release()
+    template <Numeric T, u32 n>
+    auto Image<T, n>::release() -> Pixel *
     {
-        P * const pixels{_pixels};
+        Pixel * const pixels{_pixels};
         _size = {};
         _pixels = nullptr;
         return pixels;
     }
 
-    template <typename P>
-    void ImageView<P>::fill(const P & color) const requires (!std::is_const_v<P>)
+    template <Numeric T, u32 n, bool constant>
+    void ImageView<T, n, constant>::fill(const Pixel & color) const requires (!constant)
     {
         for (u32 y{0u}; y < _size.y; ++y)
         {
@@ -63,8 +63,8 @@ namespace qc::image
         }
     }
 
-    template <typename P>
-    void ImageView<P>::outline(const u32 thickness, const P & color) const requires (!std::is_const_v<P>)
+    template <Numeric T, u32 n, bool constant>
+    void ImageView<T, n, constant>::outline(const u32 thickness, const Pixel & color) const requires (!constant)
     {
         if (thickness)
         {
@@ -83,24 +83,24 @@ namespace qc::image
         }
     }
 
-    template <typename P>
-    void ImageView<P>::horizontalLine(const ivec2 pos, const u32 length, const P & color) const requires (!std::is_const_v<P>)
+    template <Numeric T, u32 n, bool constant>
+    void ImageView<T, n, constant>::horizontalLine(const ivec2 pos, const u32 length, const Pixel & color) const requires (!constant)
     {
         if (pos.y >= 0 && u32(pos.y) < _size.y)
         {
             const ispan1 span{ispan1{pos.x, pos.x + s32(length)} & ispan1{0, s32(_size.x)}};
-            P * const r{row(pos.y)};
+            Pixel * const r{row(pos.y)};
             std::fill(r + span.min, r + span.max, color);
         }
     }
 
-    template <typename P>
-    void ImageView<P>::verticalLine(const ivec2 pos, const u32 length, const P & color) const requires (!std::is_const_v<P>)
+    template <Numeric T, u32 n, bool constant>
+    void ImageView<T, n, constant>::verticalLine(const ivec2 pos, const u32 length, const Pixel & color) const requires (!constant)
     {
         if (pos.x >= 0 && u32(pos.x) < _size.x)
         {
             const ispan1 span{ispan1{pos.y, pos.y + s32(length)} & ispan1{0, s32(_size.y)}};
-            P * p{&at(pos.x, span.min)};
+            Pixel * p{&at(pos.x, span.min)};
             for (s32 y{span.min}; y < span.max; ++y, p -= _image->_size.x)
             {
                 *p = color;
@@ -108,8 +108,8 @@ namespace qc::image
         }
     }
 
-    template <typename P>
-    void ImageView<P>::checkerboard(const u32 squareSize, const P & backColor, const P & foreColor) const requires (!std::is_const_v<P>)
+    template <Numeric T, u32 n, bool constant>
+    void ImageView<T, n, constant>::checkerboard(const u32 squareSize, const Pixel & backColor, const Pixel & foreColor) const requires (!constant)
     {
         // TODO: Make more efficient
         for (uivec2 p{0u}; p.y < _size.y; ++p.y)
@@ -121,71 +121,71 @@ namespace qc::image
         }
     }
 
-    template <typename P>
-    void ImageView<P>::copy(const ImageView<const P> & src) const requires (!std::is_const_v<P>)
+    template <Numeric T, u32 n, bool constant>
+    void ImageView<T, n, constant>::copy(const ImageView<T, n, true> & src) const requires (!constant)
     {
         const u32 copyWidth{min(_size.x, src._size.x)};
-        const P * srcR{src.row(0)};
-        P * dstR{row(0)};
+        const Pixel * srcR{src.row(0)};
+        Pixel * dstR{row(0)};
         for (u32 y{0u}; y < _size.y; ++y, srcR -= src._image->_size.x, dstR -= _image->_size.x)
         {
             std::copy_n(srcR, copyWidth, dstR);
         }
     }
 
-    template <typename P>
-    void ImageView<P>::copy(const _Image & src) const requires (!std::is_const_v<P>)
+    template <Numeric T, u32 n, bool constant>
+    void ImageView<T, n, constant>::copy(const Image & src) const requires (!constant)
     {
         copy(src.view());
     }
 
-    template <typename P>
-    Result<Image<P>> read(const std::filesystem::path & file, const bool allowComponentPadding)
+    template <Numeric T, u32 n>
+    Result<Image<T, n>> read(const std::filesystem::path & file, const bool allowComponentPadding)
     {
         const Result<List<u8>> fileData{utils::readFile(file)};
 
         FAIL_IF(!fileData);
 
         int width, height, channels;
-        u8 * const data{stbi_load_from_memory(fileData->data(), int(fileData->size()), &width, &height, &channels, allowComponentPadding ? int(Image<P>::components) : 0)};
+        u8 * const data{stbi_load_from_memory(fileData->data(), int(fileData->size()), &width, &height, &channels, allowComponentPadding ? int(n) : 0)};
         ScopeGuard memGuard{[data]() { STBI_FREE(data); }};
 
         FAIL_IF(!data);
         FAIL_IF(width <= 0 || height <= 0);
-        FAIL_IF(u32(channels) > Image<P>::components || (!allowComponentPadding && u32(channels) < Image<P>::components));
+        FAIL_IF(u32(channels) > n || (!allowComponentPadding && u32(channels) < n));
 
         memGuard.release();
-        return Image<P>{uivec2{u32(width), u32(height)}, std::bit_cast<P *>(data)};
+        return Image<T, n>{uivec2{u32(width), u32(height)}, std::bit_cast<Pixel<T, n> *>(data)};
     }
 
-    Result<GrayImage> readGrayImage(const std::filesystem::path & file)
+    Result<GrayImage> readGray(const std::filesystem::path & file)
     {
-        return read<u8>(file, false);
+        return read<u8, 1u>(file, false);
     }
 
-    Result<GrayAlphaImage> readGrayAlphaImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    Result<GrayAlphaImage> readGrayAlpha(const std::filesystem::path & file, const bool allowComponentPadding)
     {
-        return read<ucvec2>(file, allowComponentPadding);
+        return read<u8, 2u>(file, allowComponentPadding);
     }
 
-    Result<RgbImage> readRgbImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    Result<RgbImage> readRgb(const std::filesystem::path & file, const bool allowComponentPadding)
     {
-        return read<ucvec3>(file, allowComponentPadding);
+        return read<u8, 3u>(file, allowComponentPadding);
     }
 
-    Result<RgbaImage> readRgbaImage(const std::filesystem::path & file, const bool allowComponentPadding)
+    Result<RgbaImage> readRgba(const std::filesystem::path & file, const bool allowComponentPadding)
     {
-        return read<ucvec4>(file, allowComponentPadding);
+        return read<u8, 4u>(file, allowComponentPadding);
     }
 
-    template <typename P>
-    bool write(const Image<P> & image, const std::filesystem::path & file)
+    template <Numeric T, u32 n>
+    bool write(const Image<T, n> & image, const std::filesystem::path & file)
     {
         const std::filesystem::path extension{file.extension()};
         if (extension == ".png")
         {
             int dataLength{};
-            u8 * const data{stbi_write_png_to_mem(std::bit_cast<const u8*>(image.pixels()), int(image.width() * sizeof(P)), int(image.width()), int(image.height()), int(image.components), &dataLength)};
+            u8 * const data{stbi_write_png_to_mem(std::bit_cast<const u8 *>(image.pixels()), int(image.width() * sizeof(Pixel<T, n>)), int(image.width()), int(image.height()), int(n), &dataLength)};
             const qc::ScopeGuard dataGuard{[&]() { STBI_FREE(data); }};
 
             FAIL_IF(dataLength <= 0 || !data);
@@ -202,20 +202,24 @@ namespace qc::image
 
     // Explicit template specialization
 
-    template class Image<u8>;
-    template class Image<ucvec2>;
-    template class Image<ucvec3>;
-    template class Image<ucvec4>;
+    template class Image<u8, 1u>;
+    template class Image<u8, 2u>;
+    template class Image<u8, 3u>;
+    template class Image<u8, 4u>;
 
-    template class ImageView<u8>;
-    template class ImageView<ucvec2>;
-    template class ImageView<ucvec3>;
-    template class ImageView<ucvec4>;
+    template class ImageView<u8, 1u, false>;
+    template class ImageView<u8, 1u, true>;
+    template class ImageView<u8, 2u, false>;
+    template class ImageView<u8, 2u, true>;
+    template class ImageView<u8, 3u, false>;
+    template class ImageView<u8, 3u, true>;
+    template class ImageView<u8, 4u, false>;
+    template class ImageView<u8, 4u, true>;
 
-    template Result<GrayImage> read<u8>(const std::filesystem::path &, bool);
-    template Result<GrayAlphaImage> read<ucvec2>(const std::filesystem::path &, bool);
-    template Result<RgbImage> read<ucvec3>(const std::filesystem::path &, bool);
-    template Result<RgbaImage> read<ucvec4>(const std::filesystem::path &, bool);
+    template Result<GrayImage> read<u8, 1u>(const std::filesystem::path &, bool);
+    template Result<GrayAlphaImage> read<u8, 2u>(const std::filesystem::path &, bool);
+    template Result<RgbImage> read<u8, 3u>(const std::filesystem::path &, bool);
+    template Result<RgbaImage> read<u8, 4u>(const std::filesystem::path &, bool);
 
     template bool write(const GrayImage &, const std::filesystem::path &);
     template bool write(const GrayAlphaImage &, const std::filesystem::path &);
