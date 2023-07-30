@@ -99,10 +99,10 @@ namespace qc::image
         ImageView(Image & image, ivec2 pos, uivec2 size);
 
         ImageView(const ImageView &) = default;
-        ImageView(const ImageView<T, n, false> & other) requires constant;
+        ImageView(const ImageView<T, n, false> & other) requires (constant);
 
         ImageView & operator=(const ImageView &) = default;
-        ImageView & operator=(const ImageView<T, n, false> & other) requires constant;
+        ImageView & operator=(const ImageView<T, n, false> & other) requires (constant);
 
         nodisc ImageView view(ivec2 position, uivec2 size) const;
 
@@ -248,12 +248,12 @@ namespace qc::image
     }
 
     template <Numeric T, u32 n, bool constant>
-    inline ImageView<T, n, constant>::ImageView(const ImageView<T, n, false> & other) requires constant :
+    inline ImageView<T, n, constant>::ImageView(const ImageView<T, n, false> & other) requires (constant) :
         ImageView{reinterpret_cast<const ImageView &>(other)}
     {}
 
     template <Numeric T, u32 n, bool constant>
-    inline auto ImageView<T, n, constant>::operator=(const ImageView<T, n, false> & other) -> ImageView & requires constant
+    inline auto ImageView<T, n, constant>::operator=(const ImageView<T, n, false> & other) -> ImageView & requires (constant)
     {
         return *this = reinterpret_cast<const ImageView &>(other);
     }

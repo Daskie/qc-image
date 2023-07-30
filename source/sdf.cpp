@@ -462,7 +462,7 @@ namespace qc::image::sdf
             [](Contour & contour)
             {
                 contour.normalize();
-                return contour.segments.empty();
+                return !contour.segments;
             });
     }
 
@@ -476,7 +476,7 @@ namespace qc::image::sdf
 
     bool Outline::isValid() const
     {
-        if (contours.empty())
+        if (!contours)
         {
             return false;
         }
