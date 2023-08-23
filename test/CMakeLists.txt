@@ -1,5 +1,5 @@
 qc_setup_target(
-    qc-image-test
+    test
     EXECUTABLE
     PRIVATE_LINKS
         qc-image
