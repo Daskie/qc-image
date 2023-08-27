@@ -47,19 +47,19 @@ namespace qc::image
 
         void fill(const Pixel & color);
 
-        nodisc View view() { return View{*this, ivec2{}, _size}; }
-        nodisc CView view() const { return CView{*this, ivec2{}, _size}; }
-        nodisc View view(const ivec2 pos, const uivec2 size) { return View{*this, pos, size}; }
-        nodisc CView view(const ivec2 pos, const uivec2 size) const { return CView{*this, pos, size}; }
+        nodisc finline View view() { return View{*this, ivec2{}, _size}; }
+        nodisc finline CView view() const { return CView{*this, ivec2{}, _size}; }
+        nodisc finline View view(const ivec2 pos, const uivec2 size) { return View{*this, pos, size}; }
+        nodisc finline CView view(const ivec2 pos, const uivec2 size) const { return CView{*this, pos, size}; }
 
-        nodisc uivec2 size() const { return _size; }
+        nodisc finline uivec2 size() const { return _size; }
 
-        nodisc u32 width() const { return _size.x; };
+        nodisc finline u32 width() const { return _size.x; };
 
-        nodisc u32 height() const { return _size.y; };
+        nodisc finline u32 height() const { return _size.y; };
 
-        nodisc Pixel * pixels() { return _pixels; };
-        nodisc const Pixel * pixels() const { return _pixels; };
+        nodisc finline Pixel * pixels() { return _pixels; };
+        nodisc finline const Pixel * pixels() const { return _pixels; };
 
         nodisc Pixel * row(s32 y);
         nodisc const Pixel * row(s32 y) const;
@@ -106,15 +106,15 @@ namespace qc::image
 
         nodisc ImageView view(ivec2 position, uivec2 size) const;
 
-        nodisc Image * image() const { return _image; }
+        nodisc finline Image * image() const { return _image; }
 
-        nodisc ivec2 pos() const { return _pos; }
+        nodisc finline ivec2 pos() const { return _pos; }
 
-        nodisc uivec2 size() const { return _size; }
+        nodisc finline uivec2 size() const { return _size; }
 
-        nodisc u32 width() const { return _size.x; }
+        nodisc finline u32 width() const { return _size.x; }
 
-        nodisc u32 height() const { return _size.y; }
+        nodisc finline u32 height() const { return _size.y; }
 
         nodisc Pixel * row(s32 y) const;
 
@@ -158,28 +158,28 @@ namespace qc::image
 namespace qc::image
 {
     template <Numeric T, u32 n>
-    inline Image<T, n>::Image(const uivec2 size) :
+    finline Image<T, n>::Image(const uivec2 size) :
         Image{size.x, size.y}
     {}
 
     template <Numeric T, u32 n>
-    inline Image<T, n>::Image(const uivec2 size, Pixel * const pixels) :
+    finline Image<T, n>::Image(const uivec2 size, Pixel * const pixels) :
         _size{size},
         _pixels{pixels}
     {}
 
     template <Numeric T, u32 n>
-    inline Image<T, n>::Image(const u32 width, const u32 height) :
+    finline Image<T, n>::Image(const u32 width, const u32 height) :
         Image{width, height, static_cast<Pixel *>(::operator new(width * height * sizeof(Pixel)))}
     {}
 
     template <Numeric T, u32 n>
-    inline Image<T, n>::Image(const u32 width, const u32 height, Pixel * const pixels) :
+    finline Image<T, n>::Image(const u32 width, const u32 height, Pixel * const pixels) :
         Image{uivec2{width, height}, pixels}
     {}
 
     template <Numeric T, u32 n>
-    inline Image<T, n>::Image(Image && other) :
+    finline Image<T, n>::Image(Image && other) :
         _size{other._size},
         _pixels{other._pixels}
     {
@@ -188,7 +188,7 @@ namespace qc::image
     }
 
     template <Numeric T, u32 n>
-    inline Image<T, n> & Image<T, n>::operator=(Image && other)
+    finline Image<T, n> & Image<T, n>::operator=(Image && other)
     {
         _size = other._size;
         _pixels = other._pixels;
@@ -198,13 +198,13 @@ namespace qc::image
     }
 
     template <Numeric T, u32 n>
-    inline Image<T, n>::~Image()
+    finline Image<T, n>::~Image()
     {
         ::operator delete(_pixels);
     }
 
     template <Numeric T, u32 n>
-    inline auto Image<T, n>::row(const s32 y) -> Pixel *
+    finline auto Image<T, n>::row(const s32 y) -> Pixel *
     {
         assert(y >= 0 && u32(y) < _size.y);
 
@@ -212,7 +212,7 @@ namespace qc::image
     }
 
     template <Numeric T, u32 n>
-    inline auto Image<T, n>::row(const s32 y) const -> const Pixel *
+    finline auto Image<T, n>::row(const s32 y) const -> const Pixel *
     {
         assert(y >= 0 && u32(y) < _size.y);
 
@@ -220,19 +220,19 @@ namespace qc::image
     }
 
     template <Numeric T, u32 n>
-    inline auto Image<T, n>::at(const ivec2 p) -> Pixel &
+    finline auto Image<T, n>::at(const ivec2 p) -> Pixel &
     {
         return at(p.x, p.y);
     }
 
     template <Numeric T, u32 n>
-    inline auto Image<T, n>::at(const ivec2 p) const -> const Pixel &
+    finline auto Image<T, n>::at(const ivec2 p) const -> const Pixel &
     {
         return at(p.x, p.y);
     }
 
     template <Numeric T, u32 n>
-    inline auto Image<T, n>::at(const s32 x, const s32 y) -> Pixel &
+    finline auto Image<T, n>::at(const s32 x, const s32 y) -> Pixel &
     {
         assert(x >= 0 && u32(x) < _size.x);
 
@@ -240,7 +240,7 @@ namespace qc::image
     }
 
     template <Numeric T, u32 n>
-    inline auto Image<T, n>::at(const s32 x, const s32 y) const -> const Pixel &
+    finline auto Image<T, n>::at(const s32 x, const s32 y) const -> const Pixel &
     {
         assert(x >= 0 && u32(x) < _size.x);
 
@@ -248,18 +248,18 @@ namespace qc::image
     }
 
     template <Numeric T, u32 n, bool constant>
-    inline ImageView<T, n, constant>::ImageView(const ImageView<T, n, false> & other) requires (constant) :
+    finline ImageView<T, n, constant>::ImageView(const ImageView<T, n, false> & other) requires (constant) :
         ImageView{reinterpret_cast<const ImageView &>(other)}
     {}
 
     template <Numeric T, u32 n, bool constant>
-    inline auto ImageView<T, n, constant>::operator=(const ImageView<T, n, false> & other) -> ImageView & requires (constant)
+    finline auto ImageView<T, n, constant>::operator=(const ImageView<T, n, false> & other) -> ImageView & requires (constant)
     {
         return *this = reinterpret_cast<const ImageView &>(other);
     }
 
     template <Numeric T, u32 n, bool constant>
-    inline ImageView<T, n, constant>::ImageView(Image & image, const ivec2 pos, const uivec2 size) :
+    finline ImageView<T, n, constant>::ImageView(Image & image, const ivec2 pos, const uivec2 size) :
         _image{&image},
         _pos{pos},
         _size{size}
@@ -273,19 +273,19 @@ namespace qc::image
     }
 
     template <Numeric T, u32 n, bool constant>
-    inline auto ImageView<T, n, constant>::row(const s32 y) const -> Pixel *
+    finline auto ImageView<T, n, constant>::row(const s32 y) const -> Pixel *
     {
         return _image->row(_pos.y + y) + _pos.x;
     }
 
     template <Numeric T, u32 n, bool constant>
-    inline auto ImageView<T, n, constant>::at(const ivec2 p) const -> Pixel &
+    finline auto ImageView<T, n, constant>::at(const ivec2 p) const -> Pixel &
     {
         return at(p.x, p.y);
     }
 
     template <Numeric T, u32 n, bool constant>
-    inline auto ImageView<T, n, constant>::at(const s32 x, const s32 y) const -> Pixel &
+    finline auto ImageView<T, n, constant>::at(const s32 x, const s32 y) const -> Pixel &
     {
         assert(x >= 0 && u32(x) < _size.x);
 

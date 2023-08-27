@@ -74,12 +74,12 @@ namespace qc::image::sdf
 
 namespace qc::image::sdf
 {
-    inline Segment::Segment(fvec2 p1, fvec2 p2) :
+    finline Segment::Segment(const fvec2 p1, const fvec2 p2) :
         isCurve{false},
         line{p1, p2}
     {}
 
-    inline Segment::Segment(fvec2 p1, fvec2 p2, fvec2 p3) :
+    finline Segment::Segment(const fvec2 p1, const fvec2 p2, const fvec2 p3) :
         isCurve{true},
         curve{p1, p2, p3}
     {}
