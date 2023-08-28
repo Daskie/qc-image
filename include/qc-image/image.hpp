@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cassert>
-
 #include <filesystem>
 
 #include <qc-core/core.hpp>
@@ -206,7 +204,7 @@ namespace qc::image
     template <Numeric T, u32 n>
     finline auto Image<T, n>::row(const s32 y) -> Pixel *
     {
-        assert(y >= 0 && u32(y) < _size.y);
+        ASSERT(y >= 0 && u32(y) < _size.y);
 
         return _pixels + (_size.y - 1u - u32(y)) * _size.x;
     }
@@ -214,7 +212,7 @@ namespace qc::image
     template <Numeric T, u32 n>
     finline auto Image<T, n>::row(const s32 y) const -> const Pixel *
     {
-        assert(y >= 0 && u32(y) < _size.y);
+        ASSERT(y >= 0 && u32(y) < _size.y);
 
         return _pixels + (_size.y - 1u - u32(y)) * _size.x;
     }
@@ -234,7 +232,7 @@ namespace qc::image
     template <Numeric T, u32 n>
     finline auto Image<T, n>::at(const s32 x, const s32 y) -> Pixel &
     {
-        assert(x >= 0 && u32(x) < _size.x);
+        ASSERT(x >= 0 && u32(x) < _size.x);
 
         return row(y)[x];
     }
@@ -242,7 +240,7 @@ namespace qc::image
     template <Numeric T, u32 n>
     finline auto Image<T, n>::at(const s32 x, const s32 y) const -> const Pixel &
     {
-        assert(x >= 0 && u32(x) < _size.x);
+        ASSERT(x >= 0 && u32(x) < _size.x);
 
         return row(y)[x];
     }
@@ -287,7 +285,7 @@ namespace qc::image
     template <Numeric T, u32 n, bool constant>
     finline auto ImageView<T, n, constant>::at(const s32 x, const s32 y) const -> Pixel &
     {
-        assert(x >= 0 && u32(x) < _size.x);
+        ASSERT(x >= 0 && u32(x) < _size.x);
 
         return row(y)[x];
     }
