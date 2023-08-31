@@ -9,7 +9,7 @@ namespace qc::image::sdf
         struct _LineExt
         {
             fvec2 a;
-            float invLength2;
+            f32 invLength2;
         };
 
         struct _CurveExt
@@ -17,7 +17,7 @@ namespace qc::image::sdf
             fvec2 a;
             fvec2 b;
             fvec2 c;
-            float maxHalfSubLineLength;
+            f32 maxHalfSubLineLength;
         };
 
         union _SegmentExt
@@ -28,9 +28,9 @@ namespace qc::image::sdf
 
         struct _Row
         {
-            float * distances;
+            f32 * distances;
             u32 interceptN;
-            float * intercepts;
+            f32 * intercepts;
         };
 
         bool _isPointValid(const fvec2 p)
@@ -39,7 +39,7 @@ namespace qc::image::sdf
             return abs(p.x) <= 1.0e9f && abs(p.y) <= 1.0e9f;
         }
 
-        fvec2 _evaluateBezier(const _CurveExt & curve, const float t)
+        fvec2 _evaluateBezier(const _CurveExt & curve, const f32 t)
         {
             return curve.a * t * t + curve.b * t + curve.c;
         }
@@ -74,36 +74,36 @@ namespace qc::image::sdf
             return segment.isCurve ? _detSpan(segment.curve, segmentExt.curve) : _detSpan(segment.line);
         }
 
-        float _distance2To(const Line & line, const _LineExt & lineExt, const fvec2 p)
+        f32 _distance2To(const Line & line, const _LineExt & lineExt, const fvec2 p)
         {
             const fvec2 b{p - line.p1};
-            const float t{clamp(dot(lineExt.a, b) * lineExt.invLength2, 0.0f, 1.0f)};
+            const f32 t{clamp(dot(lineExt.a, b) * lineExt.invLength2, 0.0f, 1.0f)};
             const fvec2 c{t * lineExt.a};
             return distance2(b, c);
         }
 
-        float _findClosestPoint(const _CurveExt & curve, const fvec2 p, float lowT, float highT)
+        f32 _findClosestPoint(const _CurveExt & curve, const fvec2 p, f32 lowT, f32 highT)
         {
-            float midT{(lowT + highT) * 0.5f};
+            f32 midT{(lowT + highT) * 0.5f};
             fvec2 lowB{_evaluateBezier(curve, lowT)};
             fvec2 midB{_evaluateBezier(curve, midT)};
             fvec2 highB{_evaluateBezier(curve, highT)};
-            float lowDist2{distance2(p, lowB)};
-            float midDist2{distance2(p, midB)};
-            float highDist2{distance2(p, highB)};
-            float minDist2{min(min(lowDist2, midDist2), highDist2)};
-            float halfLength{(highT - lowT) * 0.5f};
+            f32 lowDist2{distance2(p, lowB)};
+            f32 midDist2{distance2(p, midB)};
+            f32 highDist2{distance2(p, highB)};
+            f32 minDist2{min(min(lowDist2, midDist2), highDist2)};
+            f32 halfLength{(highT - lowT) * 0.5f};
 
             while (halfLength > curve.maxHalfSubLineLength)
             {
                 halfLength *= 0.5f;
 
-                const float t1{midT - halfLength};
-                const float t2{midT + halfLength};
+                const f32 t1{midT - halfLength};
+                const f32 t2{midT + halfLength};
                 const fvec2 b1{_evaluateBezier(curve, t1)};
                 const fvec2 b2{_evaluateBezier(curve, t2)};
-                const float d1{distance2(p, b1)};
-                const float d2{distance2(p, b2)};
+                const f32 d1{distance2(p, b1)};
+                const f32 d2{distance2(p, b2)};
 
                 minDist2 = min(minDist2, d1, d2);
 
@@ -139,13 +139,13 @@ namespace qc::image::sdf
             return distance2ToLine(lowB, highB, p);
         }
 
-        float _distance2To(const Curve &, const _CurveExt & curveExt, const fvec2 p)
+        f32 _distance2To(const Curve &, const _CurveExt & curveExt, const fvec2 p)
         {
             // Point of maximum curvature
-            const float d{-2.0f * magnitude2(curveExt.a)};
-            const float u{d == 0.0f ? 0.0f : clamp(dot(curveExt.a, curveExt.b) / d, 0.0f, 1.0f)};
+            const f32 d{-2.0f * magnitude2(curveExt.a)};
+            const f32 u{d == 0.0f ? 0.0f : clamp(dot(curveExt.a, curveExt.b) / d, 0.0f, 1.0f)};
 
-            float dist2{infinity<float>};
+            f32 dist2{number::inf<f32>};
 
             if (u > 0.0f)
             {
@@ -160,12 +160,12 @@ namespace qc::image::sdf
             return dist2;
         }
 
-        float _distance2To(const Segment & segment, const _SegmentExt & segmentExt, const fvec2 p)
+        f32 _distance2To(const Segment & segment, const _SegmentExt & segmentExt, const fvec2 p)
         {
             return segment.isCurve ? _distance2To(segment.curve, segmentExt.curve, p) : _distance2To(segment.line, segmentExt.line, p);
         }
 
-        void _updateDistances(const Segment & segment, const _SegmentExt & segmentExt, const u32 size, const float halfRange, _Row * const rows, const fspan2 bounds)
+        void _updateDistances(const Segment & segment, const _SegmentExt & segmentExt, const u32 size, const f32 halfRange, _Row * const rows, const fspan2 bounds)
         {
             const ispan2 pixelBounds{max(floor<s32>(bounds.min - halfRange), 0), min(ceil<s32>(bounds.max + halfRange), s32(size))};
 
@@ -189,15 +189,15 @@ namespace qc::image::sdf
             }
 
             const fvec2 delta{line.p2 - line.p1};
-            const float slope{delta.x / delta.y};
-            const float offset{line.p1.x - slope * line.p1.y};
+            const f32 slope{delta.x / delta.y};
+            const f32 offset{line.p1.x - slope * line.p1.y};
 
             for (s32 yPx{interceptRows.min}; yPx <= interceptRows.max; ++yPx)
             {
                 _Row & row{rows[yPx]};
 
                 fvec2 intercept;
-                intercept.y = float(yPx) + 0.5f;
+                intercept.y = f32(yPx) + 0.5f;
                 intercept.x = slope * intercept.y + offset;
 
                 // Explicitly disallow endpoint intercepts
@@ -214,11 +214,11 @@ namespace qc::image::sdf
             {
                 _Row & row{rows[yPx]};
 
-                const float y{float(yPx) + 0.5f};
+                const f32 y{f32(yPx) + 0.5f};
 
-                const Duo<float> roots{quadraticRoots(curveExt.a.y, curveExt.b.y, curveExt.c.y - y)};
+                const Duo<f32> roots{quadraticRoots(curveExt.a.y, curveExt.b.y, curveExt.c.y - y)};
 
-                for (const float t : roots)
+                for (const f32 t : roots)
                 {
                     if (t > 0.0f && t < 1.0f)
                     {
@@ -269,7 +269,7 @@ namespace qc::image::sdf
             }
         }
 
-        void _process(const Segment & segment, const u32 size, const float halfRange, _Row * const rows)
+        void _process(const Segment & segment, const u32 size, const f32 halfRange, _Row * const rows)
         {
             const _SegmentExt segmentExt{_calcExtra(segment)};
 
@@ -278,8 +278,8 @@ namespace qc::image::sdf
             _updateDistances(segment, segmentExt, size, halfRange, rows, bounds);
 
             ispan1 interceptRows{ceil<s32>(bounds.min.y - 0.5f), floor<s32>(bounds.max.y - 0.5f)};
-            if (float(interceptRows.min) + 0.5f == bounds.min.y) ++interceptRows.min;
-            if (float(interceptRows.max) + 0.5f == bounds.max.y) --interceptRows.max;
+            if (f32(interceptRows.min) + 0.5f == bounds.min.y) ++interceptRows.min;
+            if (f32(interceptRows.max) + 0.5f == bounds.max.y) --interceptRows.max;
             clampify(interceptRows, 0, s32(size) - 1);
             if (interceptRows.max >= interceptRows.min)
             {
@@ -289,7 +289,7 @@ namespace qc::image::sdf
 
         void _updatePointIntercepts(const Contour & contour, _Row * const rows, const u32 size)
         {
-            struct Point { fvec2 p; float prevY, nextY; };
+            struct Point { fvec2 p; f32 prevY, nextY; };
             static thread_local List<Point> points;
 
             points.resize(contour.segments.size());
@@ -492,10 +492,10 @@ namespace qc::image::sdf
         return true;
     }
 
-    GrayImage generate(const Outline & outline, const u32 size, const float range)
+    GrayImage generate(const Outline & outline, const u32 size, const f32 range)
     {
-        static thread_local List<float> distances{};
-        static thread_local List<float> rowIntercepts{};
+        static thread_local List<f32> distances{};
+        static thread_local List<f32> rowIntercepts{};
         static thread_local List<_Row> rows{};
 
         FAIL_IF(!outline.isValid());
@@ -510,14 +510,14 @@ namespace qc::image::sdf
         // Reset buffers
         {
             distances.resize(size * size);
-            for (float & distance : distances) distance = infinity<float>;
+            for (f32 & distance : distances) distance = number32::inf;
 
             const u32 maxInterceptN{segmentN * 2u};
             rowIntercepts.resize(size * maxInterceptN);
 
             rows.resize(size);
-            float * firstDistance{distances.data() + size * size - size};
-            float * firstIntercept{rowIntercepts.data()};
+            f32 * firstDistance{distances.data() + size * size - size};
+            f32 * firstIntercept{rowIntercepts.data()};
             for (_Row & row : rows)
             {
                 row.distances = firstDistance;
@@ -531,7 +531,7 @@ namespace qc::image::sdf
 
         // Process segments to calculate distances and row intersections
 
-        const float halfRange{range * 0.5f};
+        const f32 halfRange{range * 0.5f};
 
         for (const Contour & contour : outline.contours)
         {
@@ -546,7 +546,7 @@ namespace qc::image::sdf
 
         // Sqrt distances
 
-        for (float & distance : distances)
+        for (f32 & distance : distances)
         {
             distance = std::sqrt(distance);
         }
@@ -577,7 +577,7 @@ namespace qc::image::sdf
                 clampify(xSpanPx, 0, s32(size) - 1);
                 for (s32 xPx{xSpanPx.min}; xPx <= xSpanPx.max; ++xPx)
                 {
-                    float & distance{row.distances[xPx]};
+                    f32 & distance{row.distances[xPx]};
                     distance = -distance;
                 }
             }
@@ -587,10 +587,10 @@ namespace qc::image::sdf
 
         GrayImage image{size, size};
 
-        const float * src{distances.data()};
-        const float * const srcEnd{src + size * size};
+        const f32 * src{distances.data()};
+        const f32 * const srcEnd{src + size * size};
         u8 * dst{image.pixels()};
-        const float invRange{1.0f / range};
+        const f32 invRange{1.0f / range};
 
         for (; src < srcEnd; ++src, ++dst)
         {

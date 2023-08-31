@@ -146,8 +146,8 @@ namespace qc::image
 
         FAIL_IF(!fileData);
 
-        int width, height, channels;
-        u8 * const data{stbi_load_from_memory(fileData->data(), int(fileData->size()), &width, &height, &channels, allowComponentPadding ? int(n) : 0)};
+        s32 width, height, channels;
+        u8 * const data{stbi_load_from_memory(fileData->data(), s32(fileData->size()), &width, &height, &channels, allowComponentPadding ? s32(n) : 0)};
         ScopeGuard memGuard{[data]() { STBI_FREE(data); }};
 
         FAIL_IF(!data);
@@ -184,8 +184,8 @@ namespace qc::image
         const std::filesystem::path extension{file.extension()};
         if (extension == ".png")
         {
-            int dataLength{};
-            u8 * const data{stbi_write_png_to_mem(std::bit_cast<const u8 *>(image.pixels()), int(image.width() * sizeof(Pixel<T, n>)), int(image.width()), int(image.height()), int(n), &dataLength)};
+            s32 dataLength{};
+            u8 * const data{stbi_write_png_to_mem(std::bit_cast<const u8 *>(image.pixels()), s32(image.width() * sizeof(Pixel<T, n>)), s32(image.width()), s32(image.height()), s32(n), &dataLength)};
             const qc::ScopeGuard dataGuard{[&]() { STBI_FREE(data); }};
 
             FAIL_IF(dataLength <= 0 || !data);

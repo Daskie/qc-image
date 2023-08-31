@@ -1,6 +1,6 @@
 #include <qc-image/image.hpp>
 
-int main()
+s32 main()
 {
     // RGB
     {
