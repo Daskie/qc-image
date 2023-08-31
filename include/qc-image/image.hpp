@@ -27,7 +27,7 @@ namespace qc::image
         using View = ImageView<T, n, false>;
         using CView = ImageView<T, n, true>;
 
-        static constexpr u32 componentN{n};
+        inline static constexpr u32 componentN{n};
 
         Image() = default;
         explicit Image(uivec2 size);
