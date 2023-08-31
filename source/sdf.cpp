@@ -510,7 +510,7 @@ namespace qc::image::sdf
         // Reset buffers
         {
             distances.resize(size * size);
-            for (f32 & distance : distances) distance = number32::inf;
+            for (f32 & distance : distances) distance = number::inf<float>;
 
             const u32 maxInterceptN{segmentN * 2u};
             rowIntercepts.resize(size * maxInterceptN);
