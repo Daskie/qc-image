@@ -2,7 +2,7 @@
 
 #include <qc-core/math.hpp>
 
-namespace qc::image::sdf
+namespace qci::sdf
 {
     namespace
     {

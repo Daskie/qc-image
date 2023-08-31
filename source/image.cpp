@@ -2,7 +2,7 @@
 
 #include <qc-core/utils.hpp>
 
-namespace qc::image
+namespace qci
 {
     static void * _realloc(void * const oldPtr, const size_t oldSize, const size_t newSize)
     {
@@ -27,7 +27,7 @@ GCC_DIAGNOSTIC_IGNORED("-Wuseless-cast")
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MALLOC(size) ::operator new(size)
 #define STBI_FREE(ptr) ::operator delete(ptr)
-#define STBI_REALLOC_SIZED(oldPtr, oldSize, newSize) ::qc::image::_realloc(oldPtr, oldSize, newSize)
+#define STBI_REALLOC_SIZED(oldPtr, oldSize, newSize) ::qci::_realloc(oldPtr, oldSize, newSize)
 #include <stb/stb_image.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBIW_MALLOC STBI_MALLOC
@@ -37,7 +37,7 @@ GCC_DIAGNOSTIC_IGNORED("-Wuseless-cast")
 MSVC_WARNING_POP
 GCC_DIAGNOSTIC_POP
 
-namespace qc::image
+namespace qci
 {
     template <Numeric T, u32 n>
     void Image<T, n>::fill(const Pixel & color)

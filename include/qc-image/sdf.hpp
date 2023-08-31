@@ -5,7 +5,7 @@
 
 #include <qc-image/image.hpp>
 
-namespace qc::image::sdf
+namespace qci::sdf
 {
     struct Line
     {
@@ -72,7 +72,7 @@ namespace qc::image::sdf
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace qc::image::sdf
+namespace qci::sdf
 {
     finline Segment::Segment(const fvec2 p1, const fvec2 p2) :
         isCurve{false},

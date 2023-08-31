@@ -6,8 +6,10 @@
 #include <qc-core/span.hpp>
 #include <qc-core/vector.hpp>
 
-namespace qc::image
+namespace qci
 {
+    using namespace qc;
+
     template <Numeric T, u32 n> using Pixel = std::conditional_t<n == 1u, T, vec<T, n>>;
 
     template <Numeric T, u32 n, bool constant> class ImageView;
@@ -153,7 +155,7 @@ namespace qc::image
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace qc::image
+namespace qci
 {
     template <Numeric T, u32 n>
     finline Image<T, n>::Image(const uivec2 size) :
