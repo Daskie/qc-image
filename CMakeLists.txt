@@ -24,7 +24,7 @@ qc_setup_target(
     qc-image
     STATIC_LIBRARY
     PUBLIC_LINKS
-        qc-core
+        qc-core::qc-core
 )
 
 if(${PROJECT_IS_TOP_LEVEL})
